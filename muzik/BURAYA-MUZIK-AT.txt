@@ -1,0 +1,2 @@
+Ortak muzik havuzu: tum nisler kullanir.
+Bir nise ozel muzik icin niches\<nis>\muzik klasorunu kullan.

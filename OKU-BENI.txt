@@ -1,35 +1,51 @@
-UZAY FABRIKASI (Windows) - Uzay & fizik Shorts
+AI SHORTS GENERATOR (Windows)
 
-Psikoloji fabrikasiyla ayni mantik, farkli nis. 15 hazir senaryo var
-(Gunes isigi, notron yildizi, Saturn, GPS ve Einstein, Ay, Uranus...).
+Metinden otomatik YouTube Shorts / TikTok / Reels videosu ureten hat:
+yapay zeka sesi + stok video + kelime kelime altyazi + muzik + kurgu.
+Tek ortak kod, birden fazla nis (kanal) calistirir.
+
+KLASORLER:
+  niches\space\         Uzay & fizik kanali (15 senaryo)
+  niches\psychology\    Psikoloji kanali (14 senaryo)
+     settings.json      ses, hiz, etiketler, vurgu rengi, yedek aramalar
+     topics.json        senaryolar
+     muzik\             o nise ozel muzikler (bos ise ortak muzik klasoru kullanilir)
+  muzik\                tum nislerin ortak muzik havuzu
+  output\<nis>\         uretilen videolar (her nis kendi klasorunde)
 
 KURULUM (bir kere):
 1. kurulum.bat dosyasina cift tikla.
    - Windows "Korunmus PC" uyarisi verirse: "Ek bilgi" > "Yine de calistir".
-   - Psikoloji fabrikasinda Pixabay key'i varsa otomatik kopyalanir, tekrar sormaz.
-   - FFmpeg zaten kuruluysa o adim hizli gecer.
+   - Python yoksa seni uyarir. Kurarken "Add python.exe to PATH" kutusunu isaretle.
+   - FFmpeg kurulunca pencereyi kapatip kurulum.bat'i bir kez daha calistir.
+   - pixabay_key.txt zaten varsa key'i tekrar sormaz.
 
 KULLANIM:
-- calistir.bat'e cift tikla. Her senaryo icin output klasorunde bir .mp4 ve
-  yukleme bilgilerini (baslik, aciklama, etiketler) iceren bir .txt olusur.
+- calistir.bat'e cift tikla: TUM nislerin videolari uretilir.
+- Sadece bir nis icin: klasorde adres cubuguna "cmd" yaz, Enter, sonra:
+      calistir.bat space
+- Her video icin output\<nis> klasorunde bir .mp4 ve yukleme bilgilerini
+  (baslik, aciklama, etiketler) iceren bir .txt olusur.
 - Hazir olan videolar tekrar uretilmez.
 
-YENILIKLER:
-- Belgesel tonunda derin ses (en-US-ChristopherNeural).
-- Altyazida sayilar ve "highlight" listesindeki kelimeler SARI yanar.
-- Key yoksa: kayan yildiz alanli, derin uzay renklerinde arka plan.
-- Konuya ozel klip bulunamazsa once genel uzay klipleri (galaxy, space) denenir.
-- Opsiyonel muzik: bu klasore "muzik.mp3" adinda telifsiz bir parca koyarsan
-  sesin arkasinda kisik sesle calar. (Pixabay Music veya YouTube Ses Kitapligi)
+YENI NIS (KANAL) EKLEMEK:
+niches klasorundeki bir nisi kopyala, adini degistir (ornek: niches\history),
+icindeki settings.json ve topics.json'u duzenle. Bir sonraki calistirmada otomatik uretilir.
 
 YENI VIDEO EKLEMEK:
-topics.json'a yeni bir blok ekle. slug her video icin farkli olmali.
-"keywords" kisa tut (1-2 kelime, Ingilizce): sun, moon, galaxy, mars, nebula...
-"highlight" listesine sari yanmasini istedigin kelimeleri yaz.
+Ilgili nisin topics.json dosyasina yeni bir blok ekle. slug her video icin farkli olmali.
+"keywords" kisa tut (1-2 kelime, Ingilizce). "highlight" listesindeki kelimeler renkli yanar.
+"music" ile parca secebilirsin; yazmazsan muzik klasorunden otomatik secilir.
+ILK 1.5 SANIYE KURALI: Her senaryoya "yok artik" dedirten kisa bir iddia ya da soruyla
+basla (ornek: "Paper can reach the Moon."). settings.json'daki first_scene_seconds: 1.5
+sayesinde ilk sahne tam giris cumlesi bitince degisir.
 
-BASKA BIR NIS ICIN:
-pipeline.py'nin ustundeki "Nis ayarlari" blogunu (ses, yedek aramalar, etiketler,
-renkler) ve topics.json'u degistirmen yeterli.
+MUZIK:
+- Sessiz girisler atlanir, muzik anlatimin altinda kalacak sekilde ayarlanir.
+- Tum videolarin sesi YouTube standardina (-14 LUFS) cekilir.
+- DIKKAT: Telifli sarkilari dosyaya gomup yuklersen telif talebi (claim) gelir.
+  Gomulu muzik icin YouTube Ses Kitapligi / Pixabay Music kullan; populer sarkilari
+  yuklerken YouTube uygulamasindan "Ses ekle" ile koy.
 
 SORUN CIKARSA:
 - Ekrandaki kirmizi/son satirlari kopyalayip Claude'a gonder.

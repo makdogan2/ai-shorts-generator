@@ -12,5 +12,8 @@ pixabay_key.txt
 pexels_key.txt
 .env
 
-# Kullanicinin kendi muzigi
-muzik.mp3
+# Muzik dosyalari (cogu telifli olabilir, public repoya girmesin)
+**/muzik/*.mp3
+**/muzik/*.wav
+**/muzik/*.m4a
+output-muzikli/

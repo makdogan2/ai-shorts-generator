@@ -8,8 +8,9 @@ if not exist venv\Scripts\activate.bat (
   exit /b 1
 )
 call venv\Scripts\activate.bat
-python pipeline.py
+rem Tum nisler: calistir.bat   /   Tek nis: calistir.bat space
+python pipeline.py %*
 echo.
-echo Bitti. Videolar "output" klasorunde, aciliyor...
+echo Bitti. Videolar "output" klasorunde, nis adina gore ayrildi. Aciliyor...
 if exist output start "" output
 pause

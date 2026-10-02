@@ -1,43 +1,123 @@
-# Uzay Fabrikası 🚀
+# AI Shorts Generator
 
-Uzay ve fizik konulu YouTube Shorts videolarını otomatik üreten Windows hattı.
-Senaryoyu yazarsın, gerisini (seslendirme, stok video, kelime kelime altyazı, kurgu) o yapar.
+A free, fully automated pipeline that turns short text scripts into ready-to-upload vertical videos for **YouTube Shorts, TikTok and Instagram Reels**. One shared engine runs any number of channels ("niches"), each with its own scripts, voice, colors and music.
 
-**Kullanılanlar:** edge-tts (ücretsiz ses) · Pixabay/Pexels (stok video) · FFmpeg (kurgu) · Pillow (altyazı)
+Write the scripts once. The pipeline handles the AI voiceover, stock footage, word-by-word captions, background music and the final 1080×1920 render, then writes the title, description and hashtags for you.
 
-## Kurulum
+```
+niches/<niche>/topics.json ─► AI voiceover ─► stock footage ─► captions ─► music + loudness ─► output/<niche>/*.mp4 + *.txt
+                              (edge-tts)      (Pixabay/Pexels)  (Pillow)    (FFmpeg)
+```
 
-1. `kurulum.bat` dosyasına çift tıkla (Python paketleri, FFmpeg ve Pixabay key).
-2. `calistir.bat` dosyasına çift tıkla.
+## Features
 
-Videolar `output/` klasörüne düşer: her konu için bir `.mp4` ve başlık/açıklama/etiketleri içeren bir `.txt`.
+- **Multi-niche.** Every folder in `niches/` is a channel with its own scripts and settings. One command renders them all.
+- **Free neural voiceover.** Microsoft Edge voices through `edge-tts`, with word-level timing. No paid TTS API needed.
+- **Automatic stock footage.** Searches Pixabay or Pexels by keyword, crops to vertical, and falls back to the niche's broader searches if a topic returns nothing.
+- **Word-by-word captions.** Big centered captions synced to the voice. Numbers and chosen keywords are highlighted in the niche's color.
+- **Works without API keys.** With no key, it renders an animated gradient background, optionally with a drifting starfield.
+- **Background music with auto-mixing.** Each video gets a track (chosen per topic or automatically). Quiet intros are skipped, and the music is leveled under the voice and faded in and out.
+- **Loudness-normalized output.** Every video is mixed to −14 LUFS, YouTube's playback standard, so it never plays quieter than other Shorts.
+- **Upload-ready metadata.** Each video gets a `.txt` with its title, description and hashtags.
+- **Batch and resume.** Videos that already exist are skipped.
+- **One-click Windows setup.** `kurulum.bat` installs everything, including FFmpeg via winget. Also runs on macOS and Linux.
 
-## Özellikler
+## Quick start
 
-- Belgesel tonunda derin ses (`en-US-ChristopherNeural`)
-- Altyazıda sayılar ve `highlight` kelimeleri sarı
-- Pixabay key yoksa kayan yıldız alanlı uzay arka planı
-- Konuya özel klip yoksa genel uzay kliplerine düşer
-- Klasöre `muzik.mp3` koyarsan arkada kısık sesle çalar
+### Windows
 
-## Yeni video eklemek
+1. Double-click `kurulum.bat`. It installs the Python packages and FFmpeg, then asks for an optional Pixabay key.
+2. Double-click `calistir.bat` to render every niche. To render a single niche, run `calistir.bat space`.
 
-`topics.json` dosyasına yeni bir blok ekle:
+Videos appear in `output/<niche>/`. The setup scripts and console messages are in Turkish.
+
+### macOS / Linux
+
+```bash
+pip install edge-tts requests pillow   # FFmpeg must also be installed
+python pipeline.py                     # all niches
+python pipeline.py space psychology    # selected niches
+python pipeline.py --list              # niches and progress
+```
+
+## Project layout
+
+```
+pipeline.py                 shared engine
+muzik/                      shared music pool (used when a niche has no music of its own)
+niches/
+  space/
+    settings.json           voice, colors, tags, fallback searches
+    topics.json             scripts
+    muzik/                  niche-specific music (optional)
+  psychology/
+    ...
+output/<niche>/             rendered videos (git-ignored)
+cache/                      downloaded stock clips, shared by all niches (git-ignored)
+```
+
+Two example niches are included: **space** (15 space and physics scripts) and **psychology** (14 psychology scripts).
+
+## Adding a niche
+
+Copy an existing folder in `niches/`, rename it, then edit its `settings.json` and `topics.json`. It will be picked up automatically on the next run.
+
+### `settings.json`
+
+| Setting | What it controls |
+|---|---|
+| `channel` | Display name shown in the console |
+| `voice`, `rate` | Narrator voice and speed (any `edge-tts` voice) |
+| `fallback_queries` | Generic footage searches used when a topic has no results |
+| `default_tags` | Hashtags used when a topic has none |
+| `highlight_color` | Caption highlight color |
+| `starfield` | Drifting stars on the keyless gradient background |
+| `palettes` | Gradient colors for keyless mode |
+| `scene_seconds` | How long each stock clip stays on screen before cutting |
+| `first_scene_seconds` | Optional quick first cut (e.g. `1.5`) right after the hook |
+| `music` | `true` to add background music, `false` to skip it |
+| `music_rel_db` | How far the music sits below the voice (dB) |
+
+Missing settings fall back to sensible defaults.
+
+**Hook tip:** open every script with a shocking claim or question that lands within the first 1.5 seconds ("Paper can reach the Moon."). Pair it with `first_scene_seconds: 1.5` so the first cut hits right as the hook ends.
+
+### `topics.json`
 
 ```json
 {
-  "slug": "benzersiz-ad",
-  "title": "Video başlığı",
-  "script": "Seslendirilecek metin, yaklaşık 35-40 kelime.",
+  "slug": "unique-video-id",
+  "title": "Hook-style video title",
+  "script": "The voiceover text, around 35-40 words for a 15-second short.",
   "keywords": "moon",
   "highlight": ["Moon"],
-  "description": "Kısa açıklama",
-  "tags": "#space #science #shorts"
+  "description": "One-line description for the upload.",
+  "tags": "#space #science #shorts",
+  "music": "track-name.mp3",
+  "music_start": 30
 }
 ```
 
-## Başka bir niş
+| Field | Purpose |
+|---|---|
+| `slug` | Unique file name for the video |
+| `script` | Text that gets voiced and captioned |
+| `keywords` | Stock footage search, 1–2 English words work best. A list like `["moon", "paper"]` mixes clips from several searches |
+| `highlight` | Words shown in the highlight color, in addition to numbers |
+| `title`, `description`, `tags` | Written to the upload `.txt` |
+| `music`, `music_start` | Optional: a track from the niche's or shared `muzik/` folder, and the second to start from |
 
-`pipeline.py` dosyasının en üstündeki **Niş ayarları** bloğunu ve `topics.json` dosyasını değiştirmen yeterli.
+## API keys
 
-> API key'ler `pixabay_key.txt` / `pexels_key.txt` dosyalarında durur ve `.gitignore` sayesinde repoya girmez.
+Both keys are free and optional:
+
+- **Pixabay:** https://pixabay.com/api/docs/
+- **Pexels:** https://www.pexels.com/api/
+
+Put a key in `pixabay_key.txt` or `pexels_key.txt`, or set the `PIXABAY_API_KEY` / `PEXELS_API_KEY` environment variables. Key files are listed in `.gitignore` and never get committed.
+
+## Responsible use
+
+Only embed music you have the rights to use (YouTube Audio Library, Pixabay Music, public-domain recordings). Copyrighted songs embedded in the file trigger Content ID claims; add those through the YouTube app's sound picker instead. Music files are git-ignored.
+
+Check your facts before publishing. Review YouTube's monetization policies on repetitive or mass-produced content, and add your own angle, voice or editing so each channel offers something original.

@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 echo ==============================
-echo   Uzay Fabrikasi - Kurulum
+echo   AI Shorts Generator - Kurulum
 echo ==============================
 echo.
 
@@ -52,7 +52,7 @@ if exist pixabay_key.txt (
 )
 if exist ..\shorts-fabrikasi\pixabay_key.txt (
   copy /y ..\shorts-fabrikasi\pixabay_key.txt pixabay_key.txt >nul
-  echo Psikoloji fabrikasindaki key bulundu ve kopyalandi.
+  echo Yandaki shorts-fabrikasi klasorunde key bulundu ve kopyalandi.
   goto bitti
 )
 echo Ucretsiz key: pixabay.com'a giris yap, pixabay.com/api/docs sayfasini ac.

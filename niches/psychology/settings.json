@@ -1,0 +1,37 @@
+{
+  "channel": "Psychology Facts",
+  "voice": "en-US-AndrewNeural",
+  "rate": "+8%",
+  "fallback_queries": [
+    "person thinking",
+    "city night",
+    "abstract background"
+  ],
+  "default_tags": "#psychology #psychologyfacts #shorts",
+  "highlight_color": "#4CC9F0",
+  "starfield": false,
+  "palettes": [
+    [
+      "0x0f0c29",
+      "0x302b63",
+      "0x24243e"
+    ],
+    [
+      "0x141e30",
+      "0x243b55",
+      "0x0b0b13"
+    ],
+    [
+      "0x200122",
+      "0x6f0000",
+      "0x120012"
+    ],
+    [
+      "0x0f2027",
+      "0x203a43",
+      "0x2c5364"
+    ]
+  ],
+  "music": false,
+  "music_rel_db": -13
+}

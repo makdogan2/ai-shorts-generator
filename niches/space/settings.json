@@ -1,0 +1,39 @@
+{
+  "channel": "Astro Pocket",
+  "voice": "en-US-ChristopherNeural",
+  "rate": "+8%",
+  "scene_seconds": 3.2,
+  "first_scene_seconds": 1.5,
+  "fallback_queries": [
+    "galaxy",
+    "stars night sky",
+    "space"
+  ],
+  "default_tags": "#space #science #shorts",
+  "highlight_color": "#FFD60A",
+  "starfield": true,
+  "palettes": [
+    [
+      "0x05061a",
+      "0x1b1464",
+      "0x0a0a0f"
+    ],
+    [
+      "0x000814",
+      "0x003566",
+      "0x0b132b"
+    ],
+    [
+      "0x10002b",
+      "0x3c096c",
+      "0x05000f"
+    ],
+    [
+      "0x03071e",
+      "0x1d3557",
+      "0x000000"
+    ]
+  ],
+  "music": false,
+  "music_rel_db": -13
+}
