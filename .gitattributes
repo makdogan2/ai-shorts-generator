@@ -1,0 +1,6 @@
+# Windows .bat dosyalari CRLF olmadan calismaz
+*.bat text eol=crlf
+*.txt text eol=crlf
+*.py  text eol=lf
+*.json text eol=lf
+*.md  text eol=lf

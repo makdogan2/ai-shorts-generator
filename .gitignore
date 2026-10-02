@@ -1,0 +1,16 @@
+# Sanal ortam ve Python
+venv/
+__pycache__/
+*.pyc
+
+# Uretilen dosyalar
+output/
+cache/
+
+# Gizli anahtarlar (asla repoya girmesin)
+pixabay_key.txt
+pexels_key.txt
+.env
+
+# Kullanicinin kendi muzigi
+muzik.mp3

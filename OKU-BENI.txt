@@ -1,0 +1,35 @@
+UZAY FABRIKASI (Windows) - Uzay & fizik Shorts
+
+Psikoloji fabrikasiyla ayni mantik, farkli nis. 15 hazir senaryo var
+(Gunes isigi, notron yildizi, Saturn, GPS ve Einstein, Ay, Uranus...).
+
+KURULUM (bir kere):
+1. kurulum.bat dosyasina cift tikla.
+   - Windows "Korunmus PC" uyarisi verirse: "Ek bilgi" > "Yine de calistir".
+   - Psikoloji fabrikasinda Pixabay key'i varsa otomatik kopyalanir, tekrar sormaz.
+   - FFmpeg zaten kuruluysa o adim hizli gecer.
+
+KULLANIM:
+- calistir.bat'e cift tikla. Her senaryo icin output klasorunde bir .mp4 ve
+  yukleme bilgilerini (baslik, aciklama, etiketler) iceren bir .txt olusur.
+- Hazir olan videolar tekrar uretilmez.
+
+YENILIKLER:
+- Belgesel tonunda derin ses (en-US-ChristopherNeural).
+- Altyazida sayilar ve "highlight" listesindeki kelimeler SARI yanar.
+- Key yoksa: kayan yildiz alanli, derin uzay renklerinde arka plan.
+- Konuya ozel klip bulunamazsa once genel uzay klipleri (galaxy, space) denenir.
+- Opsiyonel muzik: bu klasore "muzik.mp3" adinda telifsiz bir parca koyarsan
+  sesin arkasinda kisik sesle calar. (Pixabay Music veya YouTube Ses Kitapligi)
+
+YENI VIDEO EKLEMEK:
+topics.json'a yeni bir blok ekle. slug her video icin farkli olmali.
+"keywords" kisa tut (1-2 kelime, Ingilizce): sun, moon, galaxy, mars, nebula...
+"highlight" listesine sari yanmasini istedigin kelimeleri yaz.
+
+BASKA BIR NIS ICIN:
+pipeline.py'nin ustundeki "Nis ayarlari" blogunu (ses, yedek aramalar, etiketler,
+renkler) ve topics.json'u degistirmen yeterli.
+
+SORUN CIKARSA:
+- Ekrandaki kirmizi/son satirlari kopyalayip Claude'a gonder.

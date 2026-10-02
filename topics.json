@@ -1,0 +1,137 @@
+[
+  {
+    "slug": "sunlight-8-minutes",
+    "title": "You've never seen the Sun as it is right now",
+    "script": "The sunlight on your face left the Sun about 8 minutes ago. Light is fast, but space is huge. If the Sun vanished this second, you wouldn't notice for 8 whole minutes. You're always looking at the past.",
+    "keywords": "sun",
+    "highlight": ["Sun", "past"],
+    "description": "Why every sunrise is an 8-minute-old replay.",
+    "tags": "#space #sun #science #shorts"
+  },
+  {
+    "slug": "neutron-star-teaspoon",
+    "title": "A teaspoon of this star weighs a billion tons",
+    "script": "One teaspoon of a neutron star would weigh about a billion tons. These dead stars squeeze more mass than our Sun into a ball just 20 kilometers wide. Atoms get crushed so hard, protons and electrons merge into neutrons.",
+    "keywords": "galaxy stars",
+    "highlight": ["neutron", "billion", "crushed"],
+    "description": "The densest objects you can still call stars.",
+    "tags": "#space #astronomy #science #shorts"
+  },
+  {
+    "slug": "saturn-floats",
+    "title": "Saturn would float in water",
+    "script": "Saturn would float in water. It's a giant ball of hydrogen and helium, so its average density is lower than water's. There's just one problem. You'd need a bathtub over 120,000 kilometers wide.",
+    "keywords": "saturn",
+    "highlight": ["Saturn", "float", "bathtub"],
+    "description": "The planet that's lighter than water.",
+    "tags": "#space #saturn #planets #shorts"
+  },
+  {
+    "slug": "andromeda-ancient-light",
+    "title": "This light left before humans existed",
+    "script": "On a dark night, you can see the Andromeda galaxy with your bare eyes. But that light traveled for about 2.5 million years to reach you. It left before modern humans even existed. You're looking at ancient history.",
+    "keywords": "milky way",
+    "highlight": ["Andromeda", "million", "ancient"],
+    "description": "The farthest thing you can see without a telescope.",
+    "tags": "#space #galaxy #astronomy #shorts"
+  },
+  {
+    "slug": "gps-einstein",
+    "title": "Your GPS only works because of Einstein",
+    "script": "Your phone's GPS only works because of Einstein. Clocks on GPS satellites run faster than clocks on Earth, by about 38 microseconds a day. Without fixing that, your location would drift by around 10 kilometers every single day.",
+    "keywords": "satellite",
+    "highlight": ["GPS", "Einstein", "faster"],
+    "description": "Relativity is in your pocket.",
+    "tags": "#physics #einstein #science #shorts"
+  },
+  {
+    "slug": "olympus-mons",
+    "title": "The tallest volcano isn't on Earth",
+    "script": "The biggest volcano in the solar system is on Mars. Olympus Mons is about 22 kilometers tall, two and a half times taller than Everest. It's so wide that from the top, its edges would sink below the horizon.",
+    "keywords": "mars",
+    "highlight": ["Mars", "Olympus", "Mons", "Everest"],
+    "description": "Everest would look small on Mars.",
+    "tags": "#space #mars #planets #shorts"
+  },
+  {
+    "slug": "million-earths-sun",
+    "title": "1.3 million Earths fit inside the Sun",
+    "script": "You could fit about 1.3 million Earths inside the Sun. And the Sun isn't even a big star. Some giant stars are around a thousand times wider. Next to them, our Sun would be a tiny dot.",
+    "keywords": "sun space",
+    "highlight": ["million", "Sun", "thousand"],
+    "description": "How small the Sun really is.",
+    "tags": "#space #sun #stars #shorts"
+  },
+  {
+    "slug": "empty-atoms",
+    "title": "You're almost entirely empty space",
+    "script": "Every atom in your body is almost entirely empty space. If an atom were a football stadium, its nucleus would be a pea in the middle. So why don't you fall through your chair? Electrons push back on electrons.",
+    "keywords": "atom",
+    "highlight": ["empty", "nucleus", "Electrons"],
+    "description": "The emptiness inside every atom.",
+    "tags": "#physics #atoms #science #shorts"
+  },
+  {
+    "slug": "iron-from-stars",
+    "title": "The iron in your blood came from a dead star",
+    "script": "The iron in your blood was forged inside stars. Heavy elements are made when stars burn and then explode, scattering atoms across space. Billions of years later, some of those atoms became you. You're made of stardust.",
+    "keywords": "nebula",
+    "highlight": ["iron", "stars", "explode", "stardust"],
+    "description": "Where the atoms in your body came from.",
+    "tags": "#space #stars #science #shorts"
+  },
+  {
+    "slug": "moon-drifting-away",
+    "title": "The Moon is slowly running away",
+    "script": "The Moon is drifting away from Earth, about 3.8 centimeters every year. That's roughly as fast as your fingernails grow. We know because scientists bounce lasers off mirrors that astronauts left on the Moon.",
+    "keywords": "moon",
+    "highlight": ["Moon", "fingernails", "lasers"],
+    "description": "The Moon is leaving us, very slowly.",
+    "tags": "#space #moon #science #shorts"
+  },
+  {
+    "slug": "venus-hotter-than-mercury",
+    "title": "Why Venus is hotter than Mercury",
+    "script": "Mercury is closest to the Sun, but Venus is the hottest planet. Its thick carbon dioxide atmosphere traps heat like a blanket. The surface reaches about 465 degrees Celsius. That's hot enough to melt lead.",
+    "keywords": "lava",
+    "highlight": ["Venus", "hottest", "lead"],
+    "description": "The greenhouse effect gone extreme.",
+    "tags": "#space #venus #planets #shorts"
+  },
+  {
+    "slug": "iss-16-sunrises",
+    "title": "Astronauts see 16 sunrises every day",
+    "script": "Astronauts on the space station see about 16 sunrises every single day. The station circles Earth every 90 minutes, at nearly 28,000 kilometers per hour. That's London to New York in about 12 minutes.",
+    "keywords": "earth space",
+    "highlight": ["sunrises", "London", "York"],
+    "description": "Life at orbital speed.",
+    "tags": "#space #iss #astronaut #shorts"
+  },
+  {
+    "slug": "uranus-sideways",
+    "title": "The planet that rolls around the Sun",
+    "script": "Uranus spins on its side, tilted about 98 degrees. As it orbits, each pole faces the Sun for about 42 years straight. Then it gets 42 years of darkness. Scientists think a giant collision knocked it over.",
+    "keywords": "planet",
+    "highlight": ["Uranus", "side", "darkness", "collision"],
+    "description": "The strangest seasons in the solar system.",
+    "tags": "#space #uranus #planets #shorts"
+  },
+  {
+    "slug": "moon-footprints",
+    "title": "Moon footprints could last millions of years",
+    "script": "The footprints astronauts left on the Moon could last for millions of years. There's no wind or rain to wipe them away. Only tiny meteorites slowly wear them down. Orbiting cameras can still see their trails today.",
+    "keywords": "moon surface",
+    "highlight": ["footprints", "millions", "trails"],
+    "description": "Why the Apollo footprints are still there.",
+    "tags": "#space #moon #apollo #shorts"
+  },
+  {
+    "slug": "head-ages-faster",
+    "title": "Your head is older than your feet",
+    "script": "Your head ages faster than your feet. Gravity slows down time, and it's slightly weaker the higher you go. The difference is tiny, but atomic clocks have measured it over a height of just 33 centimeters.",
+    "keywords": "clock",
+    "highlight": ["head", "feet", "Gravity", "time"],
+    "description": "Einstein's time dilation, measured in a lab.",
+    "tags": "#physics #einstein #time #shorts"
+  }
+]
