@@ -45,6 +45,7 @@ TARGET_LUFS = -14            # YouTube'un ses standardı; sessiz videoları YouT
 # settings.json'da olmayan alanlar için varsayılanlar
 DEFAULTS = {
     "voice": "en-US-AndrewNeural",
+    "lang": "en",                # "tr": Türkçe büyük harf kuralları (i -> İ)
     "rate": "+5%",
     "fallback_queries": ["abstract background"],
     "default_tags": "#facts #shorts",
@@ -55,6 +56,9 @@ DEFAULTS = {
     "scene_seconds": 3.7,        # sahne (klip) değişim süresi
     "first_scene_seconds": 0,    # >0: ilk kesme bu saniyede (giriş cümlesi bitince)
     "music_rel_db": -13,
+    "music_fade_in": 0.6,        # 0: müzik ilk karede tam enerjiyle başlar
+    "sfx": False,                # true: sahne geçişlerinde whoosh, ilk kesmede boom
+    "sfx_rel_db": -8,            # efektlerin anlatıma göre seviyesi (dB)
 }
 
 
@@ -197,30 +201,82 @@ def pick_music(niche, t):
     return p, quiet_intro_end(p)
 
 
-def audio_graph(vi, mi, total, mgain, norm=None):
-    """Anlatım (+ varsa müzik) ses zinciri; çıkış etiketi [a].
-    Müzik: anlatıma göre seviyelenir, yumuşak girip çıkar. norm verilirse toplam ses TARGET_LUFS'a çekilir."""
-    if mi is None:
+SFX_WHOOSH = CACHE / "sfx_whoosh.wav"
+SFX_BOOM = CACHE / "sfx_boom.wav"
+_SFX_LUFS = {}
+
+
+def make_sfx():
+    """Whoosh ve boom efektlerini ffmpeg ile sentezler (özgün, telifsiz). Bir kez üretilip cache'e yazılır."""
+    CACHE.mkdir(exist_ok=True)
+    if not SFX_WHOOSH.exists():
+        run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+             "anoisesrc=color=pink:duration=0.55:amplitude=0.9:sample_rate=44100",
+             "-af", "highpass=f=450,lowpass=f=5500,afade=t=in:d=0.38:curve=exp,"
+                    "afade=t=out:st=0.38:d=0.17,pan=stereo|c0=c0|c1=c0", str(SFX_WHOOSH)])
+    if not SFX_BOOM.exists():
+        e = "0.95*sin(2*PI*(36+80*exp(-8*t))*t)*exp(-2.6*t)"
+        run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"aevalsrc={e}|{e}:s=44100:d=1.4",
+             "-af", "lowpass=f=900,afade=t=out:st=1.0:d=0.4", str(SFX_BOOM)])
+    for f in (SFX_WHOOSH, SFX_BOOM):
+        if f not in _SFX_LUFS:
+            _SFX_LUFS[f] = lufs(["-stream_loop", "3", "-i", str(f)])
+
+
+def audio_plan(voice, music, music_start, total, cfg, durs):
+    """Müzik ve efektlerin kazançlarını, efekt zamanlarını ve son normalizasyonu hesaplar."""
+    v = lufs(["-i", str(voice)])
+    plan = {"inputs": [], "mus": None, "sfx": None, "norm": 0.0}
+    if music:
+        m = lufs(["-ss", f"{music_start:.2f}", "-t", f"{total:.2f}", "-i", str(music)])
+        plan["inputs"].append(["-ss", f"{music_start:.2f}", "-stream_loop", "-1", "-i", str(Path(music).resolve())])
+        plan["mus"] = (v + cfg["music_rel_db"] - m, cfg["music_fade_in"])
+    cuts = [sum(durs[:i + 1]) for i in range(len(durs) - 1)]
+    if cfg["sfx"] and cuts:
+        make_sfx()
+        first = cfg["first_scene_seconds"] if cfg["first_scene_seconds"] and abs(durs[0] - cfg["first_scene_seconds"]) < 0.01 else None
+        plan["inputs"] += [["-i", str(SFX_WHOOSH)], ["-i", str(SFX_BOOM)]]
+        plan["sfx"] = {"cuts": cuts, "first": first,
+                       "wg": v + cfg["sfx_rel_db"] - _SFX_LUFS[SFX_WHOOSH],
+                       "bg": v + cfg["sfx_rel_db"] + 5 - _SFX_LUFS[SFX_BOOM]}
+    extra = [a for inp in plan["inputs"] for a in inp]
+    mixed = lufs(["-i", str(voice)] + extra, audio_graph(0, 1, total, plan, normalize=False))
+    plan["norm"] = TARGET_LUFS - mixed
+    return plan
+
+
+def audio_graph(vi, xi, total, plan, normalize=True):
+    """Anlatım + müzik + efektler; çıkış etiketi [a]. xi: ilk ek girişin (müzik/efekt) indeksi."""
+    parts, mix, idx = [], [f"[{vi}:a]"], xi
+    if plan["mus"]:
+        gain, fade_in = plan["mus"]
+        f = f"[{idx}:a]atrim=0:{total:.3f},asetpts=PTS-STARTPTS,volume={gain:.2f}dB"
+        if fade_in:
+            f += f",afade=t=in:d={fade_in}"
+        parts.append(f + f",afade=t=out:st={max(total - 1.2, 0):.3f}:d=1.2[bg]")
+        mix.append("[bg]")
+        idx += 1
+    if plan["sfx"]:
+        sx = plan["sfx"]
+        wcuts = [c for c in sx["cuts"] if c != sx["first"]]
+        if wcuts:
+            parts.append(f"[{idx}:a]asplit={len(wcuts)}" + "".join(f"[ws{i}]" for i in range(len(wcuts))))
+            for i, c in enumerate(wcuts):
+                d = int(max(c - 0.38, 0) * 1000)   # whoosh'un en yüksek noktası tam kesmeye denk gelir
+                parts.append(f"[ws{i}]adelay={d}|{d},volume={sx['wg']:.2f}dB[w{i}]")
+                mix.append(f"[w{i}]")
+        if sx["first"]:
+            d = int(max(sx["first"] - 0.03, 0) * 1000)
+            parts.append(f"[{idx + 1}:a]adelay={d}|{d},volume={sx['bg']:.2f}dB[boom]")
+            mix.append("[boom]")
+    if len(mix) == 1:
         g = f"[{vi}:a]apad,atrim=0:{total:.3f}"
     else:
-        g = (f"[{mi}:a]atrim=0:{total:.3f},asetpts=PTS-STARTPTS,volume={mgain:.2f}dB,"
-             f"afade=t=in:d=0.6,afade=t=out:st={max(total - 1.2, 0):.3f}:d=1.2[bg];"
-             f"[{vi}:a][bg]amix=inputs=2:duration=longest:normalize=0")
-    if norm is not None:
-        g += f",volume={norm:.2f}dB,alimiter=limit=0.89:level=false"
+        g = (";".join(parts) + ";" if parts else "") + "".join(mix) + \
+            f"amix=inputs={len(mix)}:duration=longest:normalize=0,apad,atrim=0:{total:.3f}"
+    if normalize:
+        g += f",volume={plan['norm']:.2f}dB,alimiter=limit=0.89:level=false"
     return g + "[a]"
-
-
-def audio_levels(voice, music, music_start, total, rel_db):
-    """Müziğin kazancını ve son ses normalizasyonunu (dB) hesaplar."""
-    v = lufs(["-i", str(voice)])
-    if not music:
-        return 0.0, TARGET_LUFS - v
-    m = lufs(["-ss", f"{music_start:.2f}", "-t", f"{total:.2f}", "-i", str(music)])
-    mgain = v + rel_db - m
-    mixed = lufs(["-i", str(voice), "-ss", f"{music_start:.2f}", "-stream_loop", "-1", "-i", str(music)],
-                 audio_graph(0, 1, total, mgain))
-    return mgain, TARGET_LUFS - mixed
 
 
 # ---------------------------------------------------------------- görsel
@@ -249,9 +305,15 @@ def is_highlight(word, highlights):
     return any(ch.isdigit() for ch in word) or clean(word) in highlights
 
 
-def make_word_png(word, path, color="white"):
+def upper(word, lang="en"):
+    if lang == "tr":
+        word = word.replace("i", "İ").replace("ı", "I")
+    return word.upper()
+
+
+def make_word_png(word, path, color="white", lang="en"):
     """Tek kelimelik, şeffaf zeminli, renkli yazı + siyah kontur PNG."""
-    text = word.upper()
+    text = upper(word, lang)
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     size = 140
     while True:
@@ -416,15 +478,15 @@ def render(niche, slug, total, clips, words, highlights, music=None, music_start
     pngs = []
     for i, (s, e, w) in enumerate(words):
         png = out / f"{slug}_w{i}.png"
-        make_word_png(w, png, cfg["highlight_color"] if is_highlight(w, highlights) else "white")
+        make_word_png(w, png, cfg["highlight_color"] if is_highlight(w, highlights) else "white", cfg["lang"])
         pngs.append(png)
-    mgain, norm = audio_levels(out / f"{slug}.mp3", music, music_start, total, cfg["music_rel_db"])
+    plan = audio_plan(out / f"{slug}.mp3", music, music_start, total, cfg, durs)
     # cwd=out olduğu için dosya adları göreli (yol sorunlarını önler)
     cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", lst.name, "-i", f"{slug}.mp3"]
     for png in pngs:
         cmd += ["-i", png.name]
-    if music:
-        cmd += ["-ss", f"{music_start:.2f}", "-stream_loop", "-1", "-i", str(Path(music).resolve())]
+    for inp in plan["inputs"]:
+        cmd += inp
     chain, prev = [], "0:v"
     for i, (s, e, w) in enumerate(words):
         end = words[i + 1][0] if i + 1 < len(words) else e
@@ -434,7 +496,7 @@ def render(niche, slug, total, clips, words, highlights, music=None, music_start
                      f"enable='gte(t,{s:.3f})*lt(t,{end:.3f})'[{label}]")
         prev = label
     vmap = f"[{prev}]" if len(chain) else "0:v"
-    chain.append(audio_graph(1, len(pngs) + 2 if music else None, total, mgain, norm))
+    chain.append(audio_graph(1, len(pngs) + 2, total, plan))
     cmd += ["-filter_complex", ";".join(chain)]
     cmd += ["-map", vmap, "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast",
             "-crf", "21", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
@@ -461,7 +523,14 @@ async def produce(niche):
             continue
         print(f"üretiliyor: {slug}")
         mp3 = niche.out / f"{slug}.mp3"
-        words = await tts(t["script"], mp3, cfg["voice"], cfg["rate"])
+        try:
+            words = await tts(t["script"], mp3, cfg["voice"], cfg["rate"])
+        except Exception as e:
+            fallback = DEFAULTS["voice"]
+            print(f"  uyarı: '{cfg['voice']}' sesi çalışmadı ({type(e).__name__}), '{fallback}' kullanılıyor")
+            words = await tts(t["script"], mp3, fallback, cfg["rate"])
+        if not words:
+            sys.exit("Ses üretilemedi (kelime zamanlaması gelmedi). İnternet bağlantını kontrol et.")
         total = duration(mp3) + 0.3
         clips = fetch_clips(t["keywords"], cfg["fallback_queries"], len(scene_durations(total, cfg)))
         if not clips:

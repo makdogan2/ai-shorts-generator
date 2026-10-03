@@ -1,37 +1,38 @@
 [
   {
-    "slug": "sunlight-8-minutes",
-    "title": "You've never seen the Sun as it is right now",
-    "script": "The sunlight on your face left the Sun about 8 minutes ago. Light is fast, but space is huge. If the Sun vanished this second, you wouldn't notice for 8 whole minutes. You're always looking at the past.",
+    "slug": "sunlight-8-minutes-v2",
+    "title": "You've never actually seen the Sun",
+    "script": "You've never seen the Sun. Not the real one, anyway. The light hitting your eyes left it 8 minutes ago. If the Sun vanished right now, you'd still feel it shining for 8 whole minutes. You're always looking at the past.",
     "keywords": "sun",
     "highlight": [
       "Sun",
+      "never",
       "past"
     ],
     "description": "Why every sunrise is an 8-minute-old replay.",
     "tags": "#space #sun #science #shorts",
-    "music": "Hans Zimmer ~ Cornfield Chase (From Interstellar) 🛰️.mp3",
-    "music_start": 38
+    "music": "Nebula - The Grey Room _ Density & Time.mp3",
+    "music_start": 30
   },
   {
-    "slug": "neutron-star-teaspoon",
+    "slug": "neutron-star-teaspoon-v2",
     "title": "A teaspoon of this star weighs a billion tons",
-    "script": "One teaspoon of a neutron star would weigh about a billion tons. These dead stars squeeze more mass than our Sun into a ball just 20 kilometers wide. Atoms get crushed so hard, protons and electrons merge into neutrons.",
+    "script": "A teaspoon of this star weighs a billion tons. It's a neutron star, with more mass than our Sun crushed into a ball just 20 kilometers wide. It's so dense that protons and electrons merge into neutrons. That's where the name comes from.",
     "keywords": "galaxy stars",
     "highlight": [
-      "neutron",
+      "teaspoon",
       "billion",
-      "crushed"
+      "neutron"
     ],
     "description": "The densest objects you can still call stars.",
     "tags": "#space #astronomy #science #shorts",
-    "music": "Timeless (Instrumental).mp3",
-    "music_start": 22
+    "music": "Akatsuki Rising - The Mini Vandals.mp3",
+    "music_start": 36
   },
   {
-    "slug": "saturn-floats",
-    "title": "Saturn would float in water",
-    "script": "Saturn would float in water. It's a giant ball of hydrogen and helium, so its average density is lower than water's. There's just one problem. You'd need a bathtub over 120,000 kilometers wide.",
+    "slug": "saturn-floats-v2",
+    "title": "Saturn could float in your bathtub",
+    "script": "Saturn could float in your bathtub. Well, almost. It's mostly hydrogen and helium, so it's less dense than water. The only problem? You'd need a bathtub more than 120,000 kilometers wide.",
     "keywords": "saturn",
     "highlight": [
       "Saturn",
@@ -40,135 +41,138 @@
     ],
     "description": "The planet that's lighter than water.",
     "tags": "#space #saturn #planets #shorts",
-    "music": "Avril 14th.mp3",
-    "music_start": 60
+    "music": "Turn In The Sun - Simon Herody.mp3",
+    "music_start": 16
   },
   {
-    "slug": "andromeda-ancient-light",
-    "title": "This light left before humans existed",
-    "script": "On a dark night, you can see the Andromeda galaxy with your bare eyes. But that light traveled for about 2.5 million years to reach you. It left before modern humans even existed. You're looking at ancient history.",
+    "slug": "andromeda-ancient-light-v2",
+    "title": "You can see 2.5 million years into the past",
+    "script": "You can see 2.5 million years into the past. Tonight. Find the Andromeda galaxy on a dark night. That faint smudge is light that left before modern humans even existed. You're staring at ancient history.",
     "keywords": "milky way",
     "highlight": [
+      "past",
+      "Tonight",
       "Andromeda",
-      "million",
       "ancient"
     ],
     "description": "The farthest thing you can see without a telescope.",
     "tags": "#space #galaxy #astronomy #shorts",
-    "music": "Hans Zimmer ~ Cornfield Chase (From Interstellar) 🛰️.mp3",
-    "music_start": 46
+    "music": "Nebula - The Grey Room _ Density & Time.mp3",
+    "music_start": 60
   },
   {
-    "slug": "gps-einstein",
+    "slug": "gps-einstein-v2",
     "title": "Your GPS only works because of Einstein",
-    "script": "Your phone's GPS only works because of Einstein. Clocks on GPS satellites run faster than clocks on Earth, by about 38 microseconds a day. Without fixing that, your location would drift by around 10 kilometers every single day.",
+    "script": "Your phone uses Einstein every single day. GPS satellite clocks run 38 microseconds a day faster than yours. Sounds tiny, right? But without fixing it, your map would be off by about 10 kilometers by tomorrow.",
     "keywords": "satellite",
     "highlight": [
-      "GPS",
       "Einstein",
+      "GPS",
       "faster"
     ],
     "description": "Relativity is in your pocket.",
     "tags": "#physics #einstein #science #shorts",
-    "music": "M83 - Solitude (Felsmann + Tiley Reinterpretation) (Official Audio).mp3",
-    "music_start": 24
+    "music": "Akatsuki Rising - The Mini Vandals.mp3",
+    "music_start": 72
   },
   {
-    "slug": "olympus-mons",
-    "title": "The tallest volcano isn't on Earth",
-    "script": "The biggest volcano in the solar system is on Mars. Olympus Mons is about 22 kilometers tall, two and a half times taller than Everest. It's so wide that from the top, its edges would sink below the horizon.",
+    "slug": "olympus-mons-v2",
+    "title": "Mount Everest is tiny",
+    "script": "Mount Everest is tiny. On Mars, Olympus Mons rises about 22 kilometers, two and a half times higher. It's so wide that from the top, its edges sink below the horizon. You'd barely know you're on a mountain.",
     "keywords": "mars",
     "highlight": [
+      "Everest",
+      "tiny",
       "Mars",
-      "Olympus",
-      "Mons",
-      "Everest"
+      "Olympus"
     ],
     "description": "Everest would look small on Mars.",
     "tags": "#space #mars #planets #shorts",
-    "music": "Death of a Bluebird - Rorschach Roy.mp3",
-    "music_start": 22
+    "music": "Akatsuki Rising - The Mini Vandals.mp3",
+    "music_start": 44
   },
   {
-    "slug": "million-earths-sun",
+    "slug": "million-earths-sun-v2",
     "title": "1.3 million Earths fit inside the Sun",
-    "script": "You could fit about 1.3 million Earths inside the Sun. And the Sun isn't even a big star. Some giant stars are around a thousand times wider. Next to them, our Sun would be a tiny dot.",
+    "script": "1.3 million Earths could fit inside the Sun. And the Sun? It's not even a big star. Some stars are around a thousand times wider. Next to them, our Sun is a tiny dot. Feeling small yet?",
     "keywords": "sun space",
     "highlight": [
       "million",
       "Sun",
-      "thousand"
+      "thousand",
+      "small"
     ],
     "description": "How small the Sun really is.",
     "tags": "#space #sun #stars #shorts",
-    "music": "Hans Zimmer ~ Cornfield Chase (From Interstellar) 🛰️.mp3",
-    "music_start": 56
+    "music": "Nebula - The Grey Room _ Density & Time.mp3",
+    "music_start": 90
   },
   {
-    "slug": "empty-atoms",
-    "title": "You're almost entirely empty space",
-    "script": "Every atom in your body is almost entirely empty space. If an atom were a football stadium, its nucleus would be a pea in the middle. So why don't you fall through your chair? Electrons push back on electrons.",
+    "slug": "empty-atoms-v2",
+    "title": "You're 99.9999% empty space",
+    "script": "You're 99.9999 percent empty space. Every atom in you is basically nothing. If an atom were a stadium, its nucleus would be a pea in the middle. So why don't you fall through your chair? Electrons push back.",
     "keywords": "atom",
     "highlight": [
       "empty",
+      "nothing",
       "nucleus",
       "Electrons"
     ],
     "description": "The emptiness inside every atom.",
     "tags": "#physics #atoms #science #shorts",
-    "music": "Avril 14th.mp3",
-    "music_start": 0
+    "music": "Frame-Dragging - The Grey Room _ Density & Time.mp3",
+    "music_start": 120
   },
   {
-    "slug": "iron-from-stars",
-    "title": "The iron in your blood came from a dead star",
-    "script": "The iron in your blood was forged inside stars. Heavy elements are made when stars burn and then explode, scattering atoms across space. Billions of years later, some of those atoms became you. You're made of stardust.",
+    "slug": "iron-from-stars-v2",
+    "title": "There's a dead star in your blood",
+    "script": "There's a dead star in your blood. The iron in it was forged inside stars that burned out and exploded billions of years ago. Those atoms drifted through space and ended up in you. You're literally made of stardust.",
     "keywords": "nebula",
     "highlight": [
+      "dead",
+      "blood",
       "iron",
-      "stars",
-      "explode",
       "stardust"
     ],
     "description": "Where the atoms in your body came from.",
     "tags": "#space #stars #science #shorts",
-    "music": "Ludovico Einaudi - Experience (Official Visualizer).mp3",
-    "music_start": 84
+    "music": "Way Back Home - Simon Herody.mp3",
+    "music_start": 100
   },
   {
-    "slug": "moon-drifting-away",
+    "slug": "moon-drifting-away-v2",
     "title": "The Moon is slowly running away",
-    "script": "The Moon is drifting away from Earth, about 3.8 centimeters every year. That's roughly as fast as your fingernails grow. We know because scientists bounce lasers off mirrors that astronauts left on the Moon.",
+    "script": "The Moon is running away from us. Every year it drifts 3.8 centimeters farther, about as fast as your fingernails grow. We know because astronauts left mirrors up there, and scientists still bounce lasers off them.",
     "keywords": "moon",
     "highlight": [
       "Moon",
-      "fingernails",
+      "running",
       "lasers"
     ],
     "description": "The Moon is leaving us, very slowly.",
     "tags": "#space #moon #science #shorts",
-    "music": "Avril 14th.mp3",
-    "music_start": 30
+    "music": "Turn In The Sun - Simon Herody.mp3",
+    "music_start": 48
   },
   {
-    "slug": "venus-hotter-than-mercury",
-    "title": "Why Venus is hotter than Mercury",
-    "script": "Mercury is closest to the Sun, but Venus is the hottest planet. Its thick carbon dioxide atmosphere traps heat like a blanket. The surface reaches about 465 degrees Celsius. That's hot enough to melt lead.",
+    "slug": "venus-hotter-than-mercury-v2",
+    "title": "The hottest planet isn't the closest one",
+    "script": "The hottest planet isn't the closest one. Mercury hugs the Sun, but Venus is hotter. Its thick carbon dioxide atmosphere traps heat like a blanket, pushing the surface to about 465 degrees Celsius. Hot enough to melt lead.",
     "keywords": "lava",
     "highlight": [
-      "Venus",
       "hottest",
+      "Venus",
       "lead"
     ],
     "description": "The greenhouse effect gone extreme.",
     "tags": "#space #venus #planets #shorts",
-    "music": "Timeless (Instrumental).mp3",
-    "music_start": 110
+    "music": "Akatsuki Rising - The Mini Vandals.mp3",
+    "music_start": 60
   },
   {
-    "slug": "iss-16-sunrises",
+    "slug": "iss-16-sunrises-v2",
     "title": "Astronauts see 16 sunrises every day",
-    "script": "Astronauts on the space station see about 16 sunrises every single day. The station circles Earth every 90 minutes, at nearly 28,000 kilometers per hour. That's London to New York in about 12 minutes.",
+    "script": "Astronauts see 16 sunrises every day. The space station circles Earth every 90 minutes, at almost 28,000 kilometers per hour. That's fast enough to fly from London to New York in about 12 minutes.",
     "keywords": "earth space",
     "highlight": [
       "sunrises",
@@ -177,29 +181,29 @@
     ],
     "description": "Life at orbital speed.",
     "tags": "#space #iss #astronaut #shorts",
-    "music": "M83 - Solitude (Felsmann + Tiley Reinterpretation) (Official Audio).mp3",
-    "music_start": 56
+    "music": "Turn In The Sun - Simon Herody.mp3",
+    "music_start": 110
   },
   {
-    "slug": "uranus-sideways",
-    "title": "The planet that rolls around the Sun",
-    "script": "Uranus spins on its side, tilted about 98 degrees. As it orbits, each pole faces the Sun for about 42 years straight. Then it gets 42 years of darkness. Scientists think a giant collision knocked it over.",
+    "slug": "uranus-sideways-v2",
+    "title": "This planet rolls around the Sun on its side",
+    "script": "One planet rolls around the Sun on its side. Uranus is tilted about 98 degrees. So each pole gets around 42 years of nonstop sunlight, then 42 years of darkness. Scientists think a giant crash knocked it over.",
     "keywords": "planet",
     "highlight": [
-      "Uranus",
       "side",
+      "Uranus",
       "darkness",
-      "collision"
+      "crash"
     ],
     "description": "The strangest seasons in the solar system.",
     "tags": "#space #uranus #planets #shorts",
-    "music": "M83 - Solitude (Felsmann + Tiley Reinterpretation) (Official Audio).mp3",
-    "music_start": 90
+    "music": "Nebula - The Grey Room _ Density & Time.mp3",
+    "music_start": 120
   },
   {
-    "slug": "moon-footprints",
+    "slug": "moon-footprints-v2",
     "title": "Moon footprints could last millions of years",
-    "script": "The footprints astronauts left on the Moon could last for millions of years. There's no wind or rain to wipe them away. Only tiny meteorites slowly wear them down. Orbiting cameras can still see their trails today.",
+    "script": "Moon footprints can last millions of years. There's no wind or rain up there to erase them. Only tiny meteorites slowly wear them down. And orbiting cameras can still spot the astronauts' trails today.",
     "keywords": "moon surface",
     "highlight": [
       "footprints",
@@ -208,13 +212,13 @@
     ],
     "description": "Why the Apollo footprints are still there.",
     "tags": "#space #moon #apollo #shorts",
-    "music": "Ludovico Einaudi - Experience (Official Visualizer).mp3",
-    "music_start": 100
+    "music": "Frame-Dragging - The Grey Room _ Density & Time.mp3",
+    "music_start": 140
   },
   {
-    "slug": "head-ages-faster",
+    "slug": "head-ages-faster-v2",
     "title": "Your head is older than your feet",
-    "script": "Your head ages faster than your feet. Gravity slows down time, and it's slightly weaker the higher you go. The difference is tiny, but atomic clocks have measured it over a height of just 33 centimeters.",
+    "script": "Your head is older than your feet. Gravity slows down time, and it's a tiny bit weaker the higher you go. Scientists have actually measured the difference with atomic clocks, over a height of just 33 centimeters.",
     "keywords": "clock",
     "highlight": [
       "head",
@@ -224,11 +228,11 @@
     ],
     "description": "Einstein's time dilation, measured in a lab.",
     "tags": "#physics #einstein #time #shorts",
-    "music": "Ludovico Einaudi - Experience (Official Visualizer).mp3",
-    "music_start": 130
+    "music": "Frame-Dragging - The Grey Room _ Density & Time.mp3",
+    "music_start": 100
   },
   {
-    "slug": "paper-to-the-moon",
+    "slug": "paper-to-the-moon-v2",
     "title": "Fold paper 42 times and it reaches the Moon",
     "script": "Paper can reach the Moon. Just fold it 42 times. Every fold doubles its thickness, so after 42 folds, a sheet a tenth of a millimeter thick becomes over 400,000 kilometers tall. You can't really fold it that much, but the math is real.",
     "keywords": [
@@ -242,6 +246,8 @@
       "real"
     ],
     "description": "The terrifying power of doubling.",
-    "tags": "#space #moon #math #shorts"
+    "tags": "#space #moon #math #shorts",
+    "music": "Turn In The Sun - Simon Herody.mp3",
+    "music_start": 80
   }
 ]

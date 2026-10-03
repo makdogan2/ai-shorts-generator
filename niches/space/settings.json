@@ -1,6 +1,6 @@
 {
   "channel": "Astro Pocket",
-  "voice": "en-US-ChristopherNeural",
+  "voice": "en-US-BrianNeural",
   "rate": "+8%",
   "scene_seconds": 3.2,
   "first_scene_seconds": 1.5,
@@ -34,6 +34,9 @@
       "0x000000"
     ]
   ],
-  "music": false,
-  "music_rel_db": -13
+  "music": true,
+  "music_rel_db": -10,
+  "music_fade_in": 0,
+  "sfx": true,
+  "sfx_rel_db": -8
 }

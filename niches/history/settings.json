@@ -1,0 +1,34 @@
+{
+  "channel": "Ten Lost Days",
+  "voice": "en-US-GuyNeural",
+  "rate": "+10%",
+  "scene_seconds": 3.0,
+  "first_scene_seconds": 1.5,
+  "fallback_queries": [
+    "ancient ruins",
+    "old map",
+    "castle"
+  ],
+  "default_tags": "#history #historyfacts #shorts",
+  "highlight_color": "#FF9F1C",
+  "starfield": false,
+  "palettes": [
+    [
+      "0x1a0f05",
+      "0x5c3a12",
+      "0x0d0805"
+    ],
+    [
+      "0x2b1608",
+      "0x7a4a1a",
+      "0x120a04"
+    ],
+    [
+      "0x1f1400",
+      "0x6b4f1d",
+      "0x0a0700"
+    ]
+  ],
+  "music": false,
+  "music_rel_db": -13
+}

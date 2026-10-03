@@ -16,11 +16,18 @@ niches/<niche>/topics.json ─► AI voiceover ─► stock footage ─► capti
 - **Automatic stock footage.** Searches Pixabay or Pexels by keyword, crops to vertical, and falls back to the niche's broader searches if a topic returns nothing.
 - **Word-by-word captions.** Big centered captions synced to the voice. Numbers and chosen keywords are highlighted in the niche's color.
 - **Works without API keys.** With no key, it renders an animated gradient background, optionally with a drifting starfield.
+- **Built-in sound effects.** Original, synthesized whooshes land exactly on every scene cut, with a boom on the hook cut. No licensing needed.
 - **Background music with auto-mixing.** Each video gets a track (chosen per topic or automatically). Quiet intros are skipped, and the music is leveled under the voice and faded in and out.
 - **Loudness-normalized output.** Every video is mixed to −14 LUFS, YouTube's playback standard, so it never plays quieter than other Shorts.
 - **Upload-ready metadata.** Each video gets a `.txt` with its title, description and hashtags.
 - **Batch and resume.** Videos that already exist are skipped.
 - **One-click Windows setup.** `kurulum.bat` installs everything, including FFmpeg via winget. Also runs on macOS and Linux.
+
+## Web app
+
+**https://makdogan2.github.io/ai-shorts-generator/**
+
+Pick ready-made channels or type your own niche, then download the complete kit as one ZIP. Custom niches are written by Claude using your own Anthropic API key, which stays in your browser and goes straight to Anthropic. The site has no server and reads the channels directly from this repository, so adding a folder to `niches/` (and to `niches/index.json`) publishes it on the site.
 
 ## Quick start
 
@@ -77,6 +84,9 @@ Copy an existing folder in `niches/`, rename it, then edit its `settings.json` a
 | `first_scene_seconds` | Optional quick first cut (e.g. `1.5`) right after the hook |
 | `music` | `true` to add background music, `false` to skip it |
 | `music_rel_db` | How far the music sits below the voice (dB) |
+| `music_fade_in` | Seconds of music fade-in (`0` = full energy from the first frame) |
+| `sfx` | Synthesized whoosh on every cut and a deep boom on the first cut |
+| `sfx_rel_db` | How far the effects sit below the voice (dB) |
 
 Missing settings fall back to sensible defaults.
 
