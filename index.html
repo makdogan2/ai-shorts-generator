@@ -1,224 +1,294 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Shorts Fabrikası</title>
-<meta name="description" content="Bir niş seç ya da kendi nişini yazdır; YouTube Shorts üretim kitini tek ZIP olarak indir.">
-<meta property="og:title" content="Shorts Fabrikası">
-<meta property="og:description" content="Metinden otomatik YouTube Shorts: yapay zeka sesi, stok video, kelime kelime altyazı.">
-<link rel="icon" href="brand/astro-pocket-logo.png">
+<title>Shorts Factory</title>
+<meta name="description" content="Turn any niche into a YouTube Shorts factory: pick a ready-made channel or have Claude write one, then download a one-click kit.">
+<meta property="og:title" content="Shorts Factory">
+<meta property="og:description" content="Automated YouTube Shorts: AI voiceover, stock footage, word-by-word captions, one-click Windows kit.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 30 21%22%3E%3Crect width=%2230%22 height=%2221%22 rx=%226%22 fill=%22%23FF0033%22/%3E%3Cpath d=%22M12 6l8 4.5-8 4.5z%22 fill=%22%23fff%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <style>
-/* Layout: a black "frame" hero set in caption type, then channels as 9:16 Shorts covers,
-   a flat form for a custom niche, and one loud download bar. The video captions are the brand. */
+/* Layout: one-page app with three views (home, ready-made niches, create your own).
+   Home = headline + live pipeline strip + two big choices. Palette: YouTube red on neutral
+   white / YouTube-dark, with a green "running" state for the automation. */
 :root {
-  --paper: #FFFFFF;
-  --ink: #0B0B0B;
-  --soft: #6A6A66;
-  --rule: #E3E3DE;
-  --field: #F4F4F0;
-  --cap: #FFD60A;          /* caption yellow, same as in the videos */
-  --rec: #FF3B30;          /* recording dot */
-  --frame: #0B0B0B;        /* hero band stays black in both themes */
-  --on-frame: #FAFAF5;
-  --display: "Anton", Impact, "Arial Narrow Bold", sans-serif;
+  --bg: #FFFFFF;
+  --surface: #F2F2F2;
+  --raised: #FFFFFF;
+  --ink: #0F0F0F;
+  --soft: #606060;
+  --line: #E2E2E2;
+  --red: #FF0033;
+  --red-ink: #FFFFFF;
+  --red-deep: #CC0029;
+  --run: #18A34A;
+  --display: "Archivo", "Segoe UI", system-ui, sans-serif;
   --body: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --caption: "Anton", Impact, "Arial Narrow Bold", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --paper: #111110; --ink: #F3F3EE; --soft: #9A9A93; --rule: #2A2A27; --field: #1B1B19; --frame: #000000; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --bg: #0F0F0F; --surface: #1C1C1C; --raised: #212121; --ink: #F1F1F1; --soft: #AAAAAA; --line: #303030; --run: #3DD56D; color-scheme: dark; }
 }
-:root[data-theme="dark"] { --paper: #111110; --ink: #F3F3EE; --soft: #9A9A93; --rule: #2A2A27; --field: #1B1B19; --frame: #000000; color-scheme: dark; }
+:root[data-theme="dark"] { --bg: #0F0F0F; --surface: #1C1C1C; --raised: #212121; --ink: #F1F1F1; --soft: #AAAAAA; --line: #303030; --run: #3DD56D; color-scheme: dark; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
 a { color: inherit; }
 button, input, select { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--cap); outline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 .in { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
 
-/* caption type: the product's signature */
-.caption { font-family: var(--display); text-transform: uppercase; letter-spacing: 0.005em; line-height: 0.98;
-  color: #fff; -webkit-text-stroke: 0.06em #000; paint-order: stroke fill; }
-.caption .y { color: var(--cap); }
+/* top bar */
+.top { border-bottom: 1px solid var(--line); }
+.top .in { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 14px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.01em; text-decoration: none; font-size: 1.05rem; }
+.logo svg { width: 30px; height: 21px; flex: none; }
+.top nav { display: flex; gap: 18px; font-size: 0.95rem; color: var(--soft); }
+.top nav a { text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
 
-/* hero */
-.frame { background: var(--frame); color: var(--on-frame); }
-.frame .in { padding-block: 18px 56px; display: grid; gap: 40px; }
-.bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 0.9rem; }
-.mark { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-size: 1.15rem; letter-spacing: 0.04em; text-transform: uppercase; }
-.mark i { width: 11px; height: 11px; border-radius: 50%; background: var(--rec); display: inline-block; }
-@media (prefers-reduced-motion: no-preference) { .mark i { animation: rec 1.6s steps(1) infinite; } }
-@keyframes rec { 50% { opacity: 0.25; } }
-.bar a { text-decoration: none; border-bottom: 1px solid #555; }
-.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; }
-.hero-grid h1 { margin: 0; font-size: clamp(3rem, 9vw, 6.6rem); font-weight: 400; text-wrap: balance; }
-.hero-grid p { margin: 18px 0 0; max-width: 52ch; color: #C9C9C2; font-size: 1.08rem; }
-.specs { margin: 14px 0 0; color: #8D8D86; font-size: 0.88rem; }
-.live { width: 168px; aspect-ratio: 9 / 16; max-width: 100%; border: 2px solid #2B2B28; display: grid; place-items: center; position: relative; overflow: hidden;
-  background: radial-gradient(120% 70% at 30% 15%, #2c1d73 0, transparent 60%), radial-gradient(90% 60% at 70% 90%, #0d3c70 0, transparent 60%), #05050a; }
-.live::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(#fff 0.7px, transparent 1.1px); background-size: 19px 23px; opacity: 0.25; }
-.live .caption { position: relative; font-size: 34px; }
-.live small { position: absolute; left: 10px; bottom: 8px; font-size: 0.7rem; color: #B9B9B2; }
+/* views */
+.view { padding-block: 40px 72px; }
+.view[hidden] { display: none !important; }
 
-/* sections */
-main .in { display: grid; gap: 64px; padding-block: 56px 72px; }
-.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 22px; }
-.sec-head h2 { margin: 0; font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 2.1rem; letter-spacing: 0.01em; }
-.sec-head span { color: var(--soft); font-size: 0.95rem; }
+/* home */
+.home { display: grid; gap: 40px; }
+.home h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 800; line-height: 1.02; letter-spacing: -0.03em; max-width: 16ch; }
+.home h1 em { font-style: normal; color: var(--red); }
+.home .lede { margin: 16px 0 0; color: var(--soft); font-size: 1.15rem; max-width: 56ch; }
 
-/* channel covers */
-.covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 18px; }
+.pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.stage { position: relative; padding: 14px 14px 16px; display: grid; gap: 2px; border-right: 1px solid var(--line); min-width: 0; }
+.stage:last-child { border-right: 0; }
+.stage small { font-family: var(--mono); font-size: 0.72rem; color: var(--soft); }
+.stage b { font-size: 0.98rem; }
+.stage .st { font-family: var(--mono); font-size: 0.74rem; color: var(--soft); }
+.stage.on .st { color: var(--run); }
+.stage.on .st::before { content: "● "; }
+.stage .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: var(--red); }
+.stage.done .bar { width: 100%; }
+.stage.on .bar { width: var(--p, 0%); transition: width .12s linear; }
+
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.choice { display: grid; gap: 10px; text-align: left; padding: 26px; border-radius: 18px; cursor: pointer; border: 1px solid var(--line); background: var(--raised); transition: transform .12s, border-color .12s; }
+.choice:hover { transform: translateY(-2px); border-color: var(--ink); }
+.choice .kicker { font-family: var(--mono); font-size: 0.78rem; color: var(--soft); }
+.choice h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; }
+.choice p { margin: 0; color: var(--soft); }
+.choice .go { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.choice.primary { background: var(--red); border-color: var(--red); color: var(--red-ink); }
+.choice.primary .kicker, .choice.primary p { color: rgba(255,255,255,.85); }
+.choice.primary:hover { border-color: var(--red-deep); background: var(--red-deep); }
+
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; border-top: 1px solid var(--line); padding-top: 28px; }
+.how div { display: grid; gap: 4px; }
+.how b { font-size: 1rem; }
+.how span { color: var(--soft); font-size: 0.95rem; }
+.how code, .note code, .inside code { font-family: var(--mono); font-size: 0.86em; background: var(--surface); padding: 1px 6px; border-radius: 5px; }
+
+/* sub-view header */
+.back { display: inline-flex; gap: 6px; align-items: center; background: none; border: 0; padding: 0; color: var(--soft); cursor: pointer; font-weight: 600; margin-bottom: 14px; }
+.back:hover { color: var(--ink); }
+.vhead { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
+.vhead h1 { font-size: clamp(2rem, 4.5vw, 3rem); font-weight: 800; letter-spacing: -0.03em; }
+.vhead p { margin: 6px 0 0; color: var(--soft); max-width: 60ch; }
+
+/* covers (ready-made niches) */
+.covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px; }
 .cover { display: grid; gap: 10px; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
-.cover-art { position: relative; aspect-ratio: 9 / 16; max-width: 100%; overflow: hidden; display: grid; align-content: center; padding: 14px; outline: 0 solid var(--cap); transition: outline-width .12s; }
+.cover-art { position: relative; aspect-ratio: 9 / 16; max-width: 100%; overflow: hidden; border-radius: 14px; display: grid; align-content: center; padding: 14px; box-shadow: 0 0 0 0 var(--red); transition: box-shadow .12s; }
 .cover-art.stars::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(#fff 0.7px, transparent 1.1px); background-size: 17px 21px; opacity: 0.28; }
-.cover-art .caption { position: relative; font-size: var(--fs, 1.6rem); text-align: center; overflow-wrap: break-word; }
-.cover-art .count { position: absolute; left: 10px; bottom: 9px; font-size: 0.72rem; color: #E7E7E0; text-shadow: 0 1px 2px #000; }
-.cover[aria-pressed="true"] .cover-art { outline-width: 5px; }
-.cover-art .tag { position: absolute; top: 10px; right: 10px; font-family: var(--display); font-size: 0.8rem; letter-spacing: 0.06em; background: var(--cap); color: #000; padding: 2px 7px; opacity: 0; transform: translateY(-4px); transition: .12s; }
-.cover[aria-pressed="true"] .tag { opacity: 1; transform: none; }
+.cover-art .caption { position: relative; font-family: var(--caption); text-transform: uppercase; line-height: 1; font-size: var(--fs, 1.6rem); text-align: center; color: #fff; -webkit-text-stroke: 0.06em #000; paint-order: stroke fill; overflow-wrap: break-word; }
+.cover-art .count { position: absolute; left: 10px; bottom: 9px; font-family: var(--mono); font-size: 0.7rem; color: #fff; background: rgba(0,0,0,.6); padding: 2px 6px; border-radius: 4px; }
+.cover-art .sel { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.35); display: grid; place-items: center; color: transparent; font-size: 14px; font-weight: 800; }
+.cover[aria-pressed="true"] .cover-art { box-shadow: 0 0 0 4px var(--red); }
+.cover[aria-pressed="true"] .sel { background: var(--red); border-color: var(--red); color: #fff; }
 .cover-meta { display: grid; gap: 1px; }
 .cover-meta b { font-weight: 700; }
-.cover-meta span { color: var(--soft); font-size: 0.86rem; }
-.cover.new .cover-art { background: var(--field); border: 2px dashed var(--soft); place-content: center; text-align: center; color: var(--ink); }
-.cover.new .plus { font-family: var(--display); font-size: 3.4rem; line-height: 1; }
-.cover.new .cover-art p { margin: 6px 0 0; font-family: var(--display); text-transform: uppercase; font-size: 1.2rem; }
-@media (prefers-reduced-motion: reduce) { .cover-art, .cover-art .tag { transition: none; } }
+.cover-meta span { color: var(--soft); font-size: 0.88rem; }
 
-/* custom niche */
-.custom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: start; }
-.custom-intro p { margin: 0 0 12px; max-width: 46ch; }
-.custom-intro .fine { color: var(--soft); font-size: 0.9rem; }
-.form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
-.field { display: grid; gap: 4px; min-width: 0; }
+/* create your own */
+.create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 36px; align-items: start; }
+.panel { background: var(--surface); border-radius: 18px; padding: 22px; display: grid; gap: 16px; }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.field { display: grid; gap: 5px; min-width: 0; }
 .field.wide { grid-column: 1 / -1; }
-.field label { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--soft); }
-.field input[type=text], .field input[type=password], .field select { width: 100%; border: 0; border-bottom: 2px solid var(--ink); background: var(--field); padding: 11px 10px; border-radius: 0; }
-.check { display: inline-flex; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--soft); margin-top: 6px; }
-.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.btn { border: 2px solid var(--ink); background: var(--ink); color: var(--paper); padding: 11px 18px; font-weight: 700; cursor: pointer; border-radius: 0; }
-.btn.line { background: transparent; color: var(--ink); }
+.field label { font-size: 0.82rem; font-weight: 600; color: var(--soft); }
+.field input[type=text], .field input[type=password], .field select { width: 100%; border: 1px solid var(--line); background: var(--raised); padding: 11px 12px; border-radius: 10px; }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--soft); }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { border: 0; background: var(--red); color: var(--red-ink); padding: 12px 20px; font-weight: 700; cursor: pointer; border-radius: 999px; }
+.btn:hover { background: var(--red-deep); }
+.btn.line { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .status { font-size: 0.93rem; color: var(--soft); }
-.status.ok { color: inherit; font-weight: 600; }
-.status.ok::before { content: "● "; color: #2BB24C; }
-.status.warn::before { content: "● "; color: var(--rec); }
-.topics { grid-column: 1 / -1; display: grid; gap: 0; border-top: 1px solid var(--rule); }
-.topic { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
-.topic .hook { font-family: var(--display); text-transform: uppercase; font-size: 1.25rem; letter-spacing: 0.01em; line-height: 1.1; }
-.topic .rest { color: var(--soft); font-size: 0.93rem; margin-top: 4px; }
-.topic .kw { font-size: 0.78rem; color: var(--soft); margin-top: 4px; }
-.x { border: 1px solid var(--rule); background: transparent; width: 34px; height: 34px; cursor: pointer; color: var(--soft); }
+.status.ok { color: var(--ink); font-weight: 600; }
+.status.ok::before { content: "● "; color: var(--run); }
+.status.warn::before { content: "● "; color: var(--red); }
+.note { color: var(--soft); font-size: 0.92rem; margin: 0; }
+.side { display: grid; gap: 14px; }
+.side h3 { font-size: 1.05rem; }
+.topics { display: grid; gap: 10px; }
+.topic { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
+.topic .hook { font-weight: 700; }
+.topic .rest { color: var(--soft); font-size: 0.93rem; margin-top: 3px; }
+.topic .kw { font-family: var(--mono); font-size: 0.72rem; color: var(--soft); margin-top: 5px; }
+.x { border: 1px solid var(--line); background: transparent; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; color: var(--soft); }
+.empty { border: 1px dashed var(--line); border-radius: 12px; padding: 22px; color: var(--soft); }
 
-/* download */
-.dl { display: grid; gap: 16px; }
-.dl-btn { width: 100%; border: 0; background: var(--cap); color: #000; cursor: pointer; padding: 22px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; text-align: left; }
-.dl-btn b { font-family: var(--display); font-weight: 400; font-size: clamp(1.7rem, 4vw, 2.6rem); text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; }
-.dl-btn span { font-weight: 600; }
-.dl-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
-.inside { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
-.inside h3 { margin: 0 0 8px; font-size: 1rem; }
-.inside ul, .inside ol { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
-.inside code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; background: var(--field); padding: 1px 5px; }
-.inside .fine { color: var(--soft); font-size: 0.9rem; margin-top: 10px; }
-footer { border-top: 1px solid var(--rule); }
-footer .in { padding-block: 22px 36px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--soft); font-size: 0.88rem; }
+/* download bar */
+.dock { position: sticky; bottom: 0; z-index: 5; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.dock .in { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding-block: 14px; }
+.dock .sum { display: grid; min-width: 0; }
+.dock .sum .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dock .sum b { font-size: 1.02rem; }
+.dl-btn { display: inline-flex; align-items: center; gap: 10px; }
+.dl-btn svg { width: 18px; height: 18px; }
+.inside { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 40px; border-top: 1px solid var(--line); padding-top: 26px; }
+.inside h3 { font-size: 1rem; margin-bottom: 8px; }
+.inside ol, .inside ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; color: var(--soft); }
+footer { border-top: 1px solid var(--line); }
+footer .in { padding-block: 20px 30px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--soft); font-size: 0.88rem; }
 
-@media (max-width: 820px) {
-  .hero-grid, .custom, .inside { grid-template-columns: 1fr; }
-  .live { width: 132px; }
-  .live .caption { font-size: 26px; }
-  .covers { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 46%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; }
-  .cover { scroll-snap-align: start; }
+@media (max-width: 860px) {
+  .choices, .create, .inside, .how { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: 1fr 1fr; }
+  .stage:nth-child(2n) { border-right: 0; }
+  .stage { border-bottom: 1px solid var(--line); }
+  .covers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .form { grid-template-columns: 1fr; }
+  .top nav a.hide-sm { display: none; }
+  .dock .in { flex-wrap: nowrap; padding-block: 10px; }
+  .dl-btn { padding: 11px 16px; flex: none; }
 }
+@media (prefers-reduced-motion: reduce) { .choice, .cover-art, .stage.on .bar { transition: none; } .choice:hover { transform: none; } }
 </style>
 
-<header class="frame">
+<header class="top">
   <div class="in">
-    <div class="bar">
-      <span class="mark"><i aria-hidden="true"></i>Shorts Fabrikası</span>
-      <a href="https://github.com/makdogan2/ai-shorts-generator" target="_blank" rel="noopener">GitHub ↗</a>
-    </div>
-    <div class="hero-grid">
-      <div>
-        <h1 class="caption">Bir niş seç. <span class="y">Videolar</span> kendini üretsin.</h1>
-        <p>Hazır kanallardan birini seç ya da kendi nişini yazdır. Senaryolar, ses ayarları ve çalıştırma dosyaları tek bir ZIP'te bilgisayarına iner.</p>
-        <p class="specs">1080×1920 dikey video · kelime kelime altyazı · −14 LUFS ses · sahne geçişlerinde efekt</p>
-      </div>
-      <div class="live" aria-hidden="true"><span class="caption y" id="cap">Paper</span><small>Astro Pocket</small></div>
-    </div>
+    <a class="logo" href="#home" aria-label="Shorts Factory home">
+      <svg viewBox="0 0 30 21" aria-hidden="true"><rect width="30" height="21" rx="6" fill="#FF0033"/><path d="M12 6l8 4.5-8 4.5z" fill="#fff"/></svg>
+      Shorts Factory
+    </a>
+    <nav>
+      <a href="#niches">Niches</a>
+      <a href="#create">Create</a>
+      <a class="hide-sm" href="https://github.com/makdogan2/ai-shorts-generator" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
   </div>
 </header>
 
 <main>
-  <div class="in">
-    <section aria-labelledby="h-ch">
-      <div class="sec-head"><h2 id="h-ch">Kanallar</h2><span>Birden fazla seçebilirsin. Her kanal kendi klasörüyle gelir.</span></div>
-      <div class="covers" id="covers"><p class="status">Kanallar yükleniyor…</p></div>
-    </section>
+  <!-- HOME -->
+  <section class="view" id="v-home">
+    <div class="in home">
+      <div>
+        <h1>Turn any niche into a <em>Shorts factory.</em></h1>
+        <p class="lede">Pick a ready-made channel or have Claude write one for your niche. Download one ZIP, double-click, and your PC renders finished vertical videos with voiceover, stock footage and captions.</p>
+      </div>
 
-    <section aria-labelledby="h-own" id="own">
-      <div class="sec-head"><h2 id="h-own">Kendi nişin</h2><span>Claude senin için senaryo yazar</span></div>
-      <div class="custom">
-        <div class="custom-intro">
-          <p>Bir konu yaz. Claude o kanalın renklerini, arama kelimelerini ve senaryolarını hazırlar. Her senaryo ilk 1,5 saniyede "yok artık" dedirten bir cümleyle açılır.</p>
-          <p class="fine" id="aiNote">Bu kısım kendi <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude API anahtarınla</a> çalışır. Anahtar sadece bu tarayıcıda kalır ve doğrudan Anthropic'e gider. 10 senaryo birkaç kuruş tutar.</p>
-          <p class="fine">Yüklemeden önce bilgileri bir kez kontrol et. Claude yanılabilir.</p>
-        </div>
-        <form class="form" id="customForm" autocomplete="off">
-          <div class="field wide"><label for="niche">Niş / konu</label><input type="text" id="niche" maxlength="80" placeholder="ör. derin deniz, hayvanlar, para bilgileri"></div>
-          <div class="field"><label for="channel">Kanal adı</label><input type="text" id="channel" maxlength="40" placeholder="isteğe bağlı"></div>
-          <div class="field"><label for="count">Video sayısı</label><select id="count"><option>5</option><option selected>10</option><option>15</option></select></div>
-          <div class="field"><label for="lang">Dil</label><select id="lang"><option value="en">English</option><option value="tr">Türkçe</option></select></div>
-          <div class="field"><label for="voice">Ses</label><select id="voice"></select></div>
-          <div class="field wide" id="keyField"><label for="apikey">Claude API anahtarı</label>
+      <div class="pipe" aria-label="What the factory does for every video">
+        <div class="stage"><small>01</small><b>Script</b><span class="st">hook in 1.5 s</span><span class="bar"></span></div>
+        <div class="stage"><small>02</small><b>Voiceover</b><span class="st">neural TTS</span><span class="bar"></span></div>
+        <div class="stage"><small>03</small><b>Footage</b><span class="st">Pixabay · Pexels</span><span class="bar"></span></div>
+        <div class="stage"><small>04</small><b>Captions</b><span class="st">word by word</span><span class="bar"></span></div>
+        <div class="stage"><small>05</small><b>Render</b><span class="st">1080×1920 · −14 LUFS</span><span class="bar"></span></div>
+      </div>
+
+      <div class="choices">
+        <button class="choice" type="button" data-go="niches">
+          <span class="kicker" id="nichesKicker">Ready-made</span>
+          <h2>Ready-made niches</h2>
+          <p>Space, psychology, history and more. Every script opens with a hook and is fact-checked.</p>
+          <span class="go">Browse niches →</span>
+        </button>
+        <button class="choice primary" type="button" data-go="create">
+          <span class="kicker">Powered by Claude</span>
+          <h2>Create your own niche</h2>
+          <p>Type any topic. Claude writes the scripts, picks the colors and the stock footage searches.</p>
+          <span class="go">Start creating →</span>
+        </button>
+      </div>
+
+      <div class="how">
+        <div><b>1. Download</b><span>Choose niches and get one ZIP with everything inside.</span></div>
+        <div><b>2. Set up once</b><span>Double-click <code>kurulum.bat</code>. It installs Python packages and FFmpeg.</span></div>
+        <div><b>3. Render</b><span>Double-click <code>calistir.bat</code>. Videos land in <code>output/</code>, one folder per channel.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- READY-MADE NICHES -->
+  <section class="view" id="v-niches" hidden>
+    <div class="in">
+      <button class="back" type="button" data-go="home">← Back</button>
+      <div class="vhead">
+        <div><h1>Ready-made niches</h1><p>Tap to select. Pick as many as you like; each channel gets its own folder and the factory renders them one after another.</p></div>
+      </div>
+      <div class="covers" id="covers"><p class="status">Loading niches…</p></div>
+      <div class="inside">
+        <div><h3>In the ZIP</h3><ul>
+          <li><code>kurulum.bat</code> and <code>calistir.bat</code> for one-click setup and rendering</li>
+          <li><code>pipeline.py</code>, the engine</li>
+          <li><code>niches/</code> with a folder for every channel you picked</li></ul></div>
+        <div><h3>Requirements</h3><ul>
+          <li>Windows PC with internet</li>
+          <li>Optional: a free Pixabay API key for real stock footage</li>
+          <li>Setup messages in the kit are in Turkish</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CREATE YOUR OWN -->
+  <section class="view" id="v-create" hidden>
+    <div class="in">
+      <button class="back" type="button" data-go="home">← Back</button>
+      <div class="vhead"><div><h1>Create your own niche</h1><p>Describe a topic. Claude writes hook-first scripts, chooses the channel colors and the stock footage searches.</p></div></div>
+      <div class="create">
+        <form class="panel form" id="customForm" autocomplete="off">
+          <div class="field wide"><label for="niche">Niche or topic</label><input type="text" id="niche" maxlength="80" placeholder="e.g. deep sea creatures, money facts, ancient Rome"></div>
+          <div class="field"><label for="channel">Channel name</label><input type="text" id="channel" maxlength="40" placeholder="optional"></div>
+          <div class="field"><label for="count">Videos</label><select id="count"><option>5</option><option selected>10</option><option>15</option></select></div>
+          <div class="field"><label for="lang">Script language</label><select id="lang"><option value="en">English</option><option value="tr">Turkish</option></select></div>
+          <div class="field"><label for="voice">Voice</label><select id="voice"></select></div>
+          <div class="field wide" id="keyField"><label for="apikey">Claude API key</label>
             <input type="password" id="apikey" placeholder="sk-ant-..." spellcheck="false">
-            <label class="check"><input type="checkbox" id="remember"> Bu cihazda hatırla</label></div>
-          <div class="field" id="modelField"><label for="model">Model</label><select id="model"><option value="claude-sonnet-5-5">Sonnet · en iyi kalite</option><option value="claude-haiku-4-5-20251001">Haiku · hızlı, ucuz</option></select></div>
+            <label class="check"><input type="checkbox" id="remember"> Remember on this device</label></div>
+          <div class="field wide" id="modelField"><label for="model">Model</label><select id="model"><option value="claude-sonnet-5-5">Sonnet · best quality</option><option value="claude-haiku-4-5-20251001">Haiku · fast and cheap</option></select></div>
           <div class="actions">
-            <button class="btn" id="genBtn" type="button">Senaryoları yaz</button>
-            <button class="btn line" id="stopBtn" type="button" hidden>Durdur</button>
+            <button class="btn" id="genBtn" type="button">Write scripts</button>
+            <button class="btn line" id="stopBtn" type="button" hidden>Stop</button>
             <span class="status" id="genStatus" role="status"></span>
           </div>
-          <div class="topics" id="topics" aria-live="polite"></div>
+          <p class="note wide" id="aiNote" style="grid-column:1/-1">Uses your own <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude API key</a>. It stays in this browser and goes straight to Anthropic; this site has no server. Ten scripts cost a few cents.</p>
         </form>
-      </div>
-    </section>
-
-    <section aria-labelledby="h-dl" class="dl">
-      <div class="sec-head"><h2 id="h-dl">İndir</h2><span id="dlStatus" class="status" role="status"></span></div>
-      <button class="dl-btn" id="dlBtn" type="button"><b>ZIP'i indir</b><span id="dlSummary">Kanal seç</span></button>
-      <div class="inside">
-        <div>
-          <h3>İçinde</h3>
-          <ul id="insideList">
-            <li><code>kurulum.bat</code> ve <code>calistir.bat</code></li>
-            <li><code>pipeline.py</code>, video üreten kod</li>
-            <li><code>niches/</code> içinde seçtiğin kanalların klasörleri</li>
-          </ul>
-        </div>
-        <div>
-          <h3>Sonra</h3>
-          <ol>
-            <li>ZIP'e sağ tıkla, <b>Tümünü ayıkla</b>.</li>
-            <li><code>kurulum.bat</code>'e çift tıkla. Python yoksa ne yapacağını söyler.</li>
-            <li><code>calistir.bat</code>'e çift tıkla. Videolar <code>output</code> klasörüne düşer.</li>
-          </ol>
-          <p class="fine">Windows için. Pixabay'den ücretsiz anahtar alırsan gerçek stok videolar kullanılır.</p>
+        <div class="side">
+          <h3 id="topicsTitle">Your scripts</h3>
+          <div class="topics" id="topics"><div class="empty">Scripts appear here. Each one opens with a hook, like <b>"Paper can reach the Moon."</b> Check the facts before you upload.</div></div>
         </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 </main>
 
-<footer><div class="in"><span>Mehmet Akdoğan · açık kaynak</span><span>Telifli müziği videoya gömme, YouTube uygulamasından ekle.</span></div></footer>
+<div class="dock" id="dock" hidden>
+  <div class="in">
+    <div class="sum"><b id="dlSummary">Nothing selected</b><span class="status" id="dlStatus" role="status">Select a niche to download</span></div>
+    <button class="btn dl-btn" id="dlBtn" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Download ZIP</button>
+  </div>
+</div>
+
+<footer><div class="in"><span>Built by Mehmet Akdoğan · open source on <a href="https://github.com/makdogan2/ai-shorts-generator" target="_blank" rel="noopener">GitHub</a></span><span>Don't embed copyrighted music; add it in the YouTube app.</span></div></footer>
 
 <script src="site.js"></script>
 </body>

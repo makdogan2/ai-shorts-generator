@@ -1,19 +1,19 @@
-/* Shorts Fabrikası — web app. Reads the kit straight from this repository.
+/* Shorts Factory — web app. Reads the kit straight from this repository.
    Runs as a plain website (GitHub Pages: your own Claude API key, normal download)
    or inside a Claude artifact (the viewer's Claude account, Claude's download dialog). */
 const KIT_FILES = ["pipeline.py", "kurulum.bat", "calistir.bat", "OKU-BENI.txt", "README.md",
                    ".gitignore", ".gitattributes", "muzik/BURAYA-MUZIK-AT.txt"];
 const OPTIONAL = new Set([".gitignore", ".gitattributes", "README.md"]);
 const VOICES = {
-  en: [["en-US-BrianNeural","Brian · samimi"],["en-US-AndrewNeural","Andrew · sıcak"],["en-US-GuyNeural","Guy · enerjik"],["en-US-ChristopherNeural","Christopher · belgesel"],["en-GB-RyanNeural","Ryan · İngiliz"],["en-US-AriaNeural","Aria · kadın, canlı"],["en-US-JennyNeural","Jenny · kadın, sıcak"]],
-  tr: [["tr-TR-AhmetNeural","Ahmet · erkek"],["tr-TR-EmelNeural","Emel · kadın"]],
+  en: [["en-US-BrianNeural","Brian · casual"],["en-US-AndrewNeural","Andrew · warm"],["en-US-GuyNeural","Guy · energetic"],["en-US-ChristopherNeural","Christopher · documentary"],["en-GB-RyanNeural","Ryan · British"],["en-US-AriaNeural","Aria · female, lively"],["en-US-JennyNeural","Jenny · female, warm"]],
+  tr: [["tr-TR-AhmetNeural","Ahmet · male"],["tr-TR-EmelNeural","Emel · female"]],
 };
 const KEY_STORE = "asg_api_key";
 const $ = (id) => document.getElementById(id);
 const inClaude = !!(window.claude && window.claude.use);
-let PRESETS = {}, picked = new Set(["space"]), custom = null, ctl = null, sample = null, downloads = null;
+let PRESETS = {}, picked = new Set(), custom = null, ctl = null, sample = null, downloads = null;
 
-const crlf = (s) => s.replace(/\r?\n/g, "\r\n");          // .bat dosyaları Windows satır sonu ister
+const crlf = (s) => s.replace(/\r?\n/g, "\r\n");          // Windows .bat files need CRLF line endings
 const toCss = (c) => "#" + String(c).replace(/^0x/, "");
 const firstSentence = (s) => s.split(/(?<=[.?!])\s/)[0];
 async function getText(path) {
@@ -22,23 +22,44 @@ async function getText(path) {
   return r.text();
 }
 
-/* ---------- live caption in the hero ---------- */
+/* ---------- views ---------- */
+const VIEWS = ["home", "niches", "create"];
+function show(view, push = true) {
+  if (!VIEWS.includes(view)) view = "home";
+  for (const v of VIEWS) $("v-" + v).hidden = v !== view;
+  $("dock").hidden = view === "home";
+  if (push && location.hash !== "#" + view) history.pushState(null, "", "#" + view);
+  window.scrollTo({ top: 0 });
+  if (view === "create") setTimeout(() => $("niche").focus({ preventScroll: true }), 50);
+}
+document.addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]");
+  if (go) { e.preventDefault(); show(go.dataset.go); }
+  const a = e.target.closest('a[href^="#"]');
+  if (a && !go) { e.preventDefault(); show(a.getAttribute("href").slice(1)); }
+});
+window.addEventListener("popstate", () => show(location.hash.slice(1), false));
+
+/* ---------- live pipeline strip on the home view ---------- */
 (() => {
-  const words = [["Paper",1],["can",0],["reach",0],["the",0],["Moon",1],["Just",0],["fold",0],["it",0],["42",1],["times",0]];
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const cap = $("cap"); let i = 0;
-  setInterval(() => { i = (i + 1) % words.length; cap.textContent = words[i][0]; cap.classList.toggle("y", !!words[i][1]); }, 430);
+  const stages = [...document.querySelectorAll(".stage")];
+  if (!stages.length || matchMedia("(prefers-reduced-motion: reduce)").matches) { stages.forEach((s) => s.classList.add("done")); return; }
+  let i = 0, p = 0;
+  setInterval(() => {
+    if (i >= stages.length) { stages.forEach((s) => s.classList.remove("done", "on")); i = 0; p = 0; return; }
+    const s = stages[i]; s.classList.add("on"); p += 10; s.style.setProperty("--p", p + "%");
+    if (p >= 100) { s.classList.remove("on"); s.classList.add("done"); i++; p = 0; }
+  }, 90);
 })();
 
-/* ---------- channel covers ---------- */
+/* ---------- ready-made niches ---------- */
 function captionNodes(text, highlights, color) {
   const hl = new Set(highlights.map((h) => h.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "")));
   const frag = document.createDocumentFragment();
   text.split(/\s+/).forEach((w, i) => {
     const s = document.createElement("span");
     s.textContent = (i ? " " : "") + w;
-    const key = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-    if (/\d/.test(w) || hl.has(key)) s.style.color = color;
+    if (/\d/.test(w) || hl.has(w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""))) s.style.color = color;
     frag.append(s);
   });
   return frag;
@@ -50,38 +71,32 @@ function cover({ id, title, sub, settings, topic, count }) {
   const art = document.createElement("div"); art.className = "cover-art" + (settings.starfield ? " stars" : "");
   const pal = (settings.palettes && settings.palettes[0]) || ["0x111111", "0x333333", "0x000000"];
   art.style.background = `linear-gradient(165deg, ${toCss(pal[1])}, ${toCss(pal[0])} 55%, ${toCss(pal[2])})`;
+  const hook = firstSentence(topic.script);
+  const longest = Math.max(...hook.split(/\s+/).map((w) => w.length));
   const cap = document.createElement("div"); cap.className = "caption"; cap.lang = settings.lang || "en";
-  const hookLen = firstSentence(topic.script).length, longest = Math.max(...firstSentence(topic.script).split(/\s+/).map((w) => w.length));
-  cap.style.setProperty("--fs", (hookLen <= 26 && longest <= 9 ? 1.6 : hookLen <= 44 && longest <= 11 ? 1.32 : 1.1) + "rem");
-  cap.append(captionNodes(firstSentence(topic.script), topic.highlight || [], settings.highlight_color || "#FFD60A"));
-  const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = "Seçildi";
-  const cnt = document.createElement("span"); cnt.className = "count"; cnt.textContent = `${count} video`;
-  art.append(cap, tag, cnt);
+  cap.style.setProperty("--fs", (hook.length <= 26 && longest <= 9 ? 1.6 : hook.length <= 44 && longest <= 11 ? 1.32 : 1.1) + "rem");
+  cap.append(captionNodes(hook, topic.highlight || [], settings.highlight_color || "#FFD60A"));
+  const sel = document.createElement("span"); sel.className = "sel"; sel.textContent = "✓";
+  const cnt = document.createElement("span"); cnt.className = "count"; cnt.textContent = `${count} videos`;
+  art.append(cap, sel, cnt);
   const meta = document.createElement("span"); meta.className = "cover-meta";
   const t = document.createElement("b"); t.textContent = title;
   const s = document.createElement("span"); s.textContent = sub;
-  meta.append(t, s);
-  b.append(art, meta);
-  b.addEventListener("click", () => { picked.has(id) ? picked.delete(id) : picked.add(id); renderCovers(); renderSummary(); });
+  meta.append(t, s); b.append(art, meta);
+  b.addEventListener("click", () => {
+    picked.has(id) ? picked.delete(id) : picked.add(id);
+    b.setAttribute("aria-pressed", picked.has(id) ? "true" : "false");
+    renderSummary();
+  });
   return b;
 }
 
 function renderCovers() {
   const box = $("covers"); box.replaceChildren();
   for (const [key, p] of Object.entries(PRESETS))
-    box.append(cover({ id: key, title: p.channel, sub: `${p.label} · ${p.voiceLabel}`, settings: p.settings, topic: p.topics[0], count: p.topics.length }));
+    box.append(cover({ id: key, title: p.channel, sub: `${p.label} · ${p.voiceLabel} voice`, settings: p.settings, topic: p.topics[0], count: p.topics.length }));
   if (custom)
-    box.append(cover({ id: "custom", title: custom.channel, sub: "Senin nişin", settings: custom.settings, topic: custom.topics[0], count: custom.topics.length }));
-  const add = document.createElement("button"); add.type = "button"; add.className = "cover new";
-  const art = document.createElement("div"); art.className = "cover-art";
-  const plus = document.createElement("div"); plus.className = "plus"; plus.textContent = "+";
-  const p = document.createElement("p"); p.textContent = custom ? "Yeniden yaz" : "Kendi nişin";
-  art.append(plus, p);
-  const meta = document.createElement("span"); meta.className = "cover-meta";
-  const mt = document.createElement("b"); mt.textContent = "Kendi nişin"; const ms = document.createElement("span"); ms.textContent = "Claude yazar";
-  meta.append(mt, ms); add.append(art, meta);
-  add.addEventListener("click", () => { $("own").scrollIntoView({ behavior: "smooth", block: "start" }); setTimeout(() => $("niche").focus(), 350); });
-  box.append(add);
+    box.append(cover({ id: "custom", title: custom.channel, sub: "Your niche", settings: custom.settings, topic: custom.topics[0], count: custom.topics.length }));
 }
 
 async function loadPresets() {
@@ -90,18 +105,20 @@ async function loadPresets() {
     const loaded = await Promise.all(index.map(async (n) => {
       const [s, t] = await Promise.all([getText(`niches/${n.folder}/settings.json`), getText(`niches/${n.folder}/topics.json`)]);
       const settings = JSON.parse(s), topics = JSON.parse(t);
-      topics.forEach((x) => { delete x.music; delete x.music_start; });     // müzik dosyaları pakette yok
+      topics.forEach((x) => { delete x.music; delete x.music_start; });     // music files are not part of the kit
       return [n.folder, { label: n.label, channel: settings.channel || n.folder,
         voiceLabel: (settings.voice || "").replace(/^\w\w-\w\w-|Neural$/g, ""), settings, topics }];
     }));
     PRESETS = Object.fromEntries(loaded);
+    const total = Object.values(PRESETS).reduce((a, p) => a + p.topics.length, 0);
+    $("nichesKicker").textContent = `${Object.keys(PRESETS).length} channels · ${total} scripts`;
     renderCovers(); renderSummary();
   } catch (e) {
-    $("covers").innerHTML = '<p class="status warn">Kanallar yüklenemedi. Sayfayı bir sunucu üzerinden aç (GitHub Pages ya da <code>python -m http.server</code>).</p>';
+    $("covers").innerHTML = '<p class="status warn">Could not load the niches. Open the page through a web server (GitHub Pages or <code>python -m http.server</code>).</p>';
   }
 }
 
-/* ---------- custom niche ---------- */
+/* ---------- create your own ---------- */
 function fillVoices() {
   $("voice").replaceChildren(...VOICES[$("lang").value].map(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; return o; }));
 }
@@ -189,32 +206,38 @@ function clean(raw, nicheText, lang, voice, channelIn) {
 
 function renderTopics() {
   const box = $("topics"); box.replaceChildren();
-  if (!custom) return;
+  if (!custom) {
+    $("topicsTitle").textContent = "Your scripts";
+    const e = document.createElement("div"); e.className = "empty";
+    e.innerHTML = 'Scripts appear here. Each one opens with a hook, like <b>"Paper can reach the Moon."</b> Check the facts before you upload.';
+    box.append(e); return;
+  }
+  $("topicsTitle").textContent = `${custom.channel} · ${custom.topics.length} scripts`;
   custom.topics.forEach((t, i) => {
     const row = document.createElement("div"); row.className = "topic";
     const body = document.createElement("div");
     const parts = t.script.split(/(?<=[.?!])\s/);
-    const hook = document.createElement("div"); hook.className = "hook"; hook.textContent = parts[0]; hook.lang = custom.settings.lang;
+    const hook = document.createElement("div"); hook.className = "hook"; hook.textContent = parts[0];
     const rest = document.createElement("div"); rest.className = "rest"; rest.textContent = parts.slice(1).join(" ");
-    const kw = document.createElement("div"); kw.className = "kw"; kw.textContent = "görüntü: " + t.keywords.join(", ");
+    const kw = document.createElement("div"); kw.className = "kw"; kw.textContent = "footage: " + t.keywords.join(", ");
     body.append(hook, rest, kw);
-    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", "Bu senaryoyu çıkar");
+    const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", "Remove this script");
     x.addEventListener("click", () => { custom.topics.splice(i, 1); if (!custom.topics.length) { custom = null; picked.delete("custom"); } renderTopics(); renderCovers(); renderSummary(); });
     row.append(body, x); box.append(row);
   });
 }
 
 const ERR = {
-  not_granted: "Bu sayfanın Claude kullanmasına izin verilmedi.",
-  sampling_disabled: "Bu hesapta Claude'dan üretim kullanılamıyor.",
-  rate_limited: "Çok fazla istek var ya da kullanım sınırına gelindi. Biraz sonra tekrar dene.",
-  invalid_json: "Cevap beklenen biçimde gelmedi. Bir kez daha dene.",
-  refused: "Bu konu için senaryo yazılamadı. Konuyu farklı ifade et.",
-  session_expired: "Oturum süresi doldu, tekrar giriş yap.",
-  401: "API anahtarı geçersiz. console.anthropic.com'dan yeni bir anahtar al.",
-  credit: "API hesabında kredi yok. console.anthropic.com → Billing'den kredi ekle.",
-  429: "Çok fazla istek. Bir dakika sonra tekrar dene.",
-  busy: "Claude şu an yoğun. Biraz sonra tekrar dene.",
+  not_granted: "This page isn't allowed to use Claude.",
+  sampling_disabled: "Claude isn't available for this account.",
+  rate_limited: "Too many requests or usage limit reached. Try again in a bit.",
+  invalid_json: "The answer came back in the wrong format. Try once more.",
+  refused: "Claude couldn't write scripts for this topic. Try phrasing it differently.",
+  session_expired: "Your session expired. Sign in again.",
+  401: "That API key isn't valid. Create a new one at console.anthropic.com.",
+  credit: "Your API account has no credit. Add some at console.anthropic.com → Billing.",
+  429: "Too many requests. Wait a minute and try again.",
+  busy: "Claude is busy right now. Try again shortly.",
 };
 
 async function askClaude(prompt, signal) {
@@ -239,21 +262,21 @@ async function askClaude(prompt, signal) {
 $("genBtn").addEventListener("click", async () => {
   const st = $("genStatus"), niche = $("niche").value.trim();
   const say = (text, cls = "") => { st.className = "status " + cls; st.textContent = text; };
-  if (!niche) { say("Önce bir niş ya da konu yaz.", "warn"); $("niche").focus(); return; }
-  if (!inClaude && !$("apikey").value.trim()) { say("Claude API anahtarını gir.", "warn"); $("apikey").focus(); return; }
+  if (!niche) { say("Type a niche or topic first.", "warn"); $("niche").focus(); return; }
+  if (!inClaude && !$("apikey").value.trim()) { say("Enter your Claude API key.", "warn"); $("apikey").focus(); return; }
   try { if (!inClaude && $("remember").checked) localStorage.setItem(KEY_STORE, $("apikey").value.trim()); } catch {}
   ctl = new AbortController();
   $("genBtn").disabled = true; $("stopBtn").hidden = false;
-  say("Senaryolar yazılıyor… yarım dakika kadar sürebilir.");
+  say("Writing scripts… this can take half a minute.");
   try {
     const raw = await askClaude(buildPrompt(niche, $("lang").value, Number($("count").value)), ctl.signal);
     custom = clean(raw, niche, $("lang").value, $("voice").value, $("channel").value.trim());
     picked.add("custom");
-    say(`${custom.topics.length} senaryo hazır, kanallara eklendi.`, "ok");
+    say(`${custom.topics.length} scripts ready and added to your download.`, "ok");
     renderTopics(); renderCovers(); renderSummary();
   } catch (e) {
-    if (e?.name === "AbortError" || e?.code === "cancelled") say("Durduruldu.");
-    else say(ERR[e?.code] || (e?.message ? "İstek başarısız oldu: " + e.message : "Bağlantı kurulamadı. İnternetini ve anahtarını kontrol et."), "warn");
+    if (e?.name === "AbortError" || e?.code === "cancelled") say("Stopped.");
+    else say(ERR[e?.code] || (e?.message ? "Request failed: " + e.message : "Couldn't connect. Check your internet and your key."), "warn");
   } finally { $("genBtn").disabled = false; $("stopBtn").hidden = true; }
 });
 $("stopBtn").addEventListener("click", () => ctl && ctl.abort());
@@ -267,19 +290,20 @@ function selected() {
 }
 function renderSummary() {
   const ns = selected(), videos = ns.reduce((a, n) => a + n.topics.length, 0);
-  $("dlSummary").textContent = ns.length ? `${ns.length} kanal · ${videos} video` : "Önce bir kanal seç";
+  $("dlSummary").textContent = ns.length ? `${ns.length} channel${ns.length > 1 ? "s" : ""} · ${videos} videos` : "Nothing selected";
+  if (!$("dlStatus").dataset.busy) { $("dlStatus").className = "status"; $("dlStatus").textContent = ns.length ? ns.map((n) => n.channel).join(", ") : "Select a niche or create your own"; }
   $("dlBtn").disabled = !ns.length;
 }
 
 const NOTE = "Bu nise ozel muzikleri (.mp3) buraya at.\r\nBos kalirsa ana klasordeki 'muzik' klasoru kullanilir.\r\n";
 $("dlBtn").addEventListener("click", async () => {
   const ns = selected(), st = $("dlStatus");
-  const say = (text, cls = "") => { st.className = "status " + cls; st.textContent = text; };
+  const say = (text, cls = "") => { st.className = "status " + cls; st.textContent = text; st.dataset.busy = "1"; setTimeout(() => delete st.dataset.busy, 6000); };
   if (!ns.length) return;
-  if (typeof JSZip === "undefined") { say("ZIP aracı yüklenemedi. Sayfayı yenile.", "warn"); return; }
-  say("Paket hazırlanıyor…");
+  if (typeof JSZip === "undefined") { say("The ZIP tool didn't load. Refresh the page.", "warn"); return; }
+  say("Packing…");
   try {
-    const zip = new JSZip(), root = zip.folder("shorts-fabrikasi");
+    const zip = new JSZip(), root = zip.folder("shorts-factory");
     for (const path of KIT_FILES) {
       try { let text = await getText(path); if (/\.(bat|txt)$/.test(path)) text = crlf(text); root.file(path, text); }
       catch (e) { if (!OPTIONAL.has(path)) throw e; }
@@ -291,27 +315,28 @@ $("dlBtn").addEventListener("click", async () => {
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     if (inClaude) {
-      if (!downloads) { say("İndirme bu görünümde kullanılamıyor.", "warn"); return; }
-      await downloads.save({ filename: "shorts-fabrikasi.zip", data: blob });
+      if (!downloads) { say("Downloads aren't available in this view.", "warn"); return; }
+      await downloads.save({ filename: "shorts-factory.zip", data: blob });
     } else {
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "shorts-fabrikasi.zip";
+      a.href = URL.createObjectURL(blob); a.download = "shorts-factory.zip";
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     }
-    say("İndirildi. Ayıkla, kurulum.bat'e çift tıkla.", "ok");
+    say("Downloaded. Extract it and double-click kurulum.bat.", "ok");
   } catch (e) {
-    say(e?.code === "declined" ? "İndirme iptal edildi." : e?.code === "rate_limited" ? "Bir indirme penceresi zaten açık." : "Paket hazırlanamadı. Tekrar dene.", "warn");
+    say(e?.code === "declined" ? "Download cancelled." : e?.code === "rate_limited" ? "A download dialog is already open." : "Couldn't build the ZIP. Try again.", "warn");
   }
 });
 
 /* ---------- boot ---------- */
-fillVoices(); loadPresets();
+fillVoices(); loadPresets(); renderSummary();
+show(location.hash.slice(1) || "home", false);
 if (inClaude) {
   $("keyField").hidden = true; $("modelField").hidden = true;
-  $("aiNote").textContent = "Bu sayfa Claude içinde açık: senaryolar senin Claude hesabınla yazılır, ayrıca anahtar gerekmez.";
+  $("aiNote").textContent = "You're inside Claude, so scripts are written with your Claude account. No API key needed.";
   (async () => {
     [sample, downloads] = await Promise.all([window.claude.use("sample"), window.claude.use("downloads")]);
-    if (!sample) { $("genBtn").disabled = true; $("genStatus").textContent = "Claude bu görünümde kullanılamıyor."; }
+    if (!sample) { $("genBtn").disabled = true; $("genStatus").textContent = "Claude isn't available in this view."; }
   })();
 }
