@@ -264,13 +264,13 @@ footer .in { padding-block: 20px 30px; display: flex; justify-content: space-bet
           <div class="field wide" id="keyField"><label for="apikey">Claude API key</label>
             <input type="password" id="apikey" placeholder="sk-ant-..." spellcheck="false">
             <label class="check"><input type="checkbox" id="remember"> Remember on this device</label></div>
-          <div class="field wide" id="modelField"><label for="model">Model</label><select id="model"><option value="claude-sonnet-5-5">Sonnet · best quality</option><option value="claude-haiku-4-5-20251001">Haiku · fast and cheap</option></select></div>
+          <div class="field wide" id="modelField"><label for="model">Model</label><select id="model"><option value="claude-opus-5-5" selected>Opus · most capable</option><option value="claude-sonnet-5-5">Sonnet · great quality, cheaper</option><option value="claude-haiku-4-5-20251001">Haiku · fastest, cheapest</option></select></div>
           <div class="actions">
             <button class="btn" id="genBtn" type="button">Write scripts</button>
             <button class="btn line" id="stopBtn" type="button" hidden>Stop</button>
             <span class="status" id="genStatus" role="status"></span>
           </div>
-          <p class="note wide" id="aiNote" style="grid-column:1/-1">Uses your own <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude API key</a>. It stays in this browser and goes straight to Anthropic; this site has no server. Ten scripts cost a few cents.</p>
+          <p class="note wide" id="aiNote" style="grid-column:1/-1">Uses your own <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude API key</a>. It stays in this browser and goes straight to Anthropic; this site has no server. You pay Anthropic per use; ten scripts cost cents.</p>
         </form>
         <div class="side">
           <h3 id="topicsTitle">Your scripts</h3>

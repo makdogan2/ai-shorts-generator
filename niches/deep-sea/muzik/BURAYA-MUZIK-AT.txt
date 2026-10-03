@@ -1,0 +1,2 @@
+Bu nise ozel muzikleri (.mp3) buraya at.
+Bos kalirsa ana klasordeki 'muzik' klasoru kullanilir.

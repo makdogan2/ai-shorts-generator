@@ -1,0 +1,26 @@
+{
+  "channel": "Abyss Files",
+  "voice": "en-US-ChristopherNeural",
+  "rate": "+8%",
+  "lang": "en",
+  "scene_seconds": 3.2,
+  "first_scene_seconds": 1.5,
+  "fallback_queries": [
+    "deep sea",
+    "jellyfish",
+    "underwater dark"
+  ],
+  "default_tags": "#deepsea #ocean #shorts",
+  "highlight_color": "#00E5FF",
+  "starfield": false,
+  "palettes": [
+    ["0x000814", "0x001d3d", "0x000000"],
+    ["0x011627", "0x023e58", "0x00040a"],
+    ["0x03045e", "0x0b1a2e", "0x000000"]
+  ],
+  "music": true,
+  "music_rel_db": -10,
+  "music_fade_in": 0,
+  "sfx": true,
+  "sfx_rel_db": -8
+}

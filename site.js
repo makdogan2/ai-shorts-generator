@@ -243,7 +243,7 @@ const ERR = {
 async function askClaude(prompt, signal) {
   if (inClaude) {
     if (!sample) throw { code: "not_granted" };
-    return sample.json(prompt, { signal, cache: false });
+    return sample.json(prompt, { signal, cache: false, modelTier: "complex" });
   }
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", signal,
