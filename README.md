@@ -65,9 +65,19 @@ cache/                      downloaded stock clips, shared by all niches (git-ig
 
 Two example niches are included: **space** (15 space and physics scripts) and **psychology** (14 psychology scripts).
 
+## Add a niche with Claude Code
+
+If you have a Claude Pro or Max plan, you can create a niche without an API key. Clone the repo, open Claude Code in the folder and run:
+
+```
+/new-niche deep sea creatures 10
+```
+
+Claude writes `niches/<name>/settings.json` and hook-first, fact-checked scripts in `topics.json`, registers the niche in `niches/index.json`, and tells you how to render it. `CLAUDE.md` explains the project to Claude Code. Open a pull request to share your niche; once merged it shows up on the website.
+
 ## Adding a niche
 
-Copy an existing folder in `niches/`, rename it, then edit its `settings.json` and `topics.json`. It will be picked up automatically on the next run.
+Copy an existing folder in `niches/`, rename it, then edit its `settings.json` and `topics.json`, and add it to `niches/index.json`. It will be picked up automatically on the next run.
 
 ### `settings.json`
 

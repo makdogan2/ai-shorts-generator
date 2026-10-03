@@ -10,5 +10,9 @@
   {
     "folder": "history",
     "label": "History"
+  },
+  {
+    "folder": "deep-sea",
+    "label": "Deep sea creatures"
   }
 ]
