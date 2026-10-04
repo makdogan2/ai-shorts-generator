@@ -269,11 +269,13 @@ def audio_graph(vi, xi, total, plan, normalize=True):
             d = int(max(sx["first"] - 0.03, 0) * 1000)
             parts.append(f"[{idx + 1}:a]adelay={d}|{d},volume={sx['bg']:.2f}dB[boom]")
             mix.append("[boom]")
+    # apad'e bitiş süresi verilir: sonsuz apad + atrim, ffmpeg'i son karede rastgele kilitliyordu
+    pad = f"apad=whole_dur={total:.3f},atrim=0:{total:.3f}"
     if len(mix) == 1:
-        g = f"[{vi}:a]apad,atrim=0:{total:.3f}"
+        g = f"[{vi}:a]{pad}"
     else:
         g = (";".join(parts) + ";" if parts else "") + "".join(mix) + \
-            f"amix=inputs={len(mix)}:duration=longest:normalize=0,apad,atrim=0:{total:.3f}"
+            f"amix=inputs={len(mix)}:duration=longest:normalize=0,{pad}"
     if normalize:
         g += f",volume={plan['norm']:.2f}dB,alimiter=limit=0.89:level=false"
     return g + "[a]"
