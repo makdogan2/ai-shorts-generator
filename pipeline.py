@@ -172,6 +172,39 @@ async def tts(text, mp3_path, voice, rate):
     return words
 
 
+def align_words(words, script, audio_len):
+    """Altyazıyı senaryodaki HER kelimeye bağlar. edge-tts bazen kelime zamanlamalarının bir kısmını
+    göndermiyor (yazı videonun ortasında kayboluyordu). Eşleşen kelimeler kendi zamanını kullanır,
+    eksikler komşularının arasına harf sayısına göre yayılır. Dönüş: (kelimeler, eşleşme oranı)."""
+    toks = script.split()
+    slots, j = [], 0
+    for t in toks:
+        hit = next((k for k in range(j, min(j + 4, len(words))) if clean(words[k][2]) == clean(t)), None)
+        if hit is None:
+            slots.append([None, None, t.strip(".,!?;:")])
+        else:
+            slots.append(list(words[hit]))
+            j = hit + 1
+    matched = sum(s[0] is not None for s in slots)
+    i = 0
+    while i < len(slots):
+        if slots[i][0] is not None:
+            i += 1
+            continue
+        k = i
+        while k < len(slots) and slots[k][0] is None:
+            k += 1
+        a = slots[i - 1][1] if i else 0.0
+        b = slots[k][0] if k < len(slots) else max(a + 0.3 * (k - i), audio_len - 0.1)
+        weights = [len(s[2]) + 2 for s in slots[i:k]]
+        t, step = a, (b - a) / sum(weights)
+        for s, wgt in zip(slots[i:k], weights):
+            s[0], s[1] = t, t + wgt * step
+            t = s[1]
+        i = k
+    return [tuple(s) for s in slots], matched / max(len(toks), 1)
+
+
 def quiet_intro_end(path):
     """Parçanın başındaki sessiz/çok kısık girişi atlamak için başlangıç saniyesi."""
     r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-t", "90", "-i", str(path),
@@ -525,14 +558,24 @@ async def produce(niche):
             continue
         print(f"üretiliyor: {slug}")
         mp3 = niche.out / f"{slug}.mp3"
-        try:
-            words = await tts(t["script"], mp3, cfg["voice"], cfg["rate"])
-        except Exception as e:
-            fallback = DEFAULTS["voice"]
-            print(f"  uyarı: '{cfg['voice']}' sesi çalışmadı ({type(e).__name__}), '{fallback}' kullanılıyor")
-            words = await tts(t["script"], mp3, fallback, cfg["rate"])
-        if not words:
+        voice = cfg["voice"]
+        for attempt in range(3):
+            try:
+                words = await tts(t["script"], mp3, voice, cfg["rate"])
+            except Exception as e:
+                if voice == DEFAULTS["voice"]:
+                    raise
+                print(f"  uyarı: '{voice}' sesi çalışmadı ({type(e).__name__}), '{DEFAULTS['voice']}' kullanılıyor")
+                voice = DEFAULTS["voice"]
+                words = await tts(t["script"], mp3, voice, cfg["rate"])
+            words, ratio = align_words(words, t["script"], duration(mp3))
+            if ratio >= 0.95:
+                break
+            print(f"  uyarı: kelime zamanlamalarının %{100 - ratio * 100:.0f}'i eksik geldi, ses yeniden üretiliyor")
+        if ratio == 0:
             sys.exit("Ses üretilemedi (kelime zamanlaması gelmedi). İnternet bağlantını kontrol et.")
+        if ratio < 0.95:
+            print("  uyarı: eksik kelimelerin zamanı tahmin edildi")
         total = duration(mp3) + 0.3
         clips = fetch_clips(t["keywords"], cfg["fallback_queries"], len(scene_durations(total, cfg)))
         if not clips:
