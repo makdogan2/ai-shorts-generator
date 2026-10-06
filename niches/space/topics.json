@@ -4,6 +4,13 @@
     "title": "You've never actually seen the Sun",
     "script": "You've never seen the Sun. Not the real one, anyway. The light hitting your eyes left it 8 minutes ago. If the Sun vanished right now, you'd still feel it shining for 8 whole minutes. You're always looking at the past.",
     "keywords": "sun",
+    "visuals": [
+      "sun",
+      "sun surface",
+      "eye closeup",
+      "solar flare",
+      "sunset"
+    ],
     "highlight": [
       "Sun",
       "never",
@@ -19,6 +26,12 @@
     "title": "A teaspoon of this star weighs a billion tons",
     "script": "A teaspoon of this star weighs a billion tons. It's a neutron star, with more mass than our Sun crushed into a ball just 20 kilometers wide. It's so dense that protons and electrons merge into neutrons. That's where the name comes from.",
     "keywords": "galaxy stars",
+    "visuals": [
+      "neutron star",
+      "galaxy",
+      "atom",
+      "stars"
+    ],
     "highlight": [
       "teaspoon",
       "billion",
@@ -34,6 +47,13 @@
     "title": "Saturn could float in your bathtub",
     "script": "Saturn could float in your bathtub. Well, almost. It's mostly hydrogen and helium, so it's less dense than water. The only problem? You'd need a bathtub more than 120,000 kilometers wide.",
     "keywords": "saturn",
+    "visuals": [
+      "saturn",
+      "bathtub",
+      "saturn",
+      "bathtub",
+      "saturn rings"
+    ],
     "highlight": [
       "Saturn",
       "float",
@@ -49,6 +69,13 @@
     "title": "You can see 2.5 million years into the past",
     "script": "You can see 2.5 million years into the past. Tonight. Find the Andromeda galaxy on a dark night. That faint smudge is light that left before modern humans even existed. You're staring at ancient history.",
     "keywords": "milky way",
+    "visuals": [
+      "andromeda galaxy",
+      "night sky",
+      "milky way",
+      "galaxy",
+      "telescope"
+    ],
     "highlight": [
       "past",
       "Tonight",
@@ -65,6 +92,12 @@
     "title": "Your GPS only works because of Einstein",
     "script": "Your phone uses Einstein every single day. GPS satellite clocks run 38 microseconds a day faster than yours. Sounds tiny, right? But without fixing it, your map would be off by about 10 kilometers by tomorrow.",
     "keywords": "satellite",
+    "visuals": [
+      "smartphone map",
+      "satellite",
+      "clock",
+      "car navigation"
+    ],
     "highlight": [
       "Einstein",
       "GPS",
@@ -80,6 +113,12 @@
     "title": "Mount Everest is tiny",
     "script": "Mount Everest is tiny. On Mars, Olympus Mons rises about 22 kilometers, two and a half times higher. It's so wide that from the top, its edges sink below the horizon. You'd barely know you're on a mountain.",
     "keywords": "mars",
+    "visuals": [
+      "mount everest",
+      "mars surface",
+      "mars",
+      "mountain top"
+    ],
     "highlight": [
       "Everest",
       "tiny",
@@ -96,6 +135,14 @@
     "title": "1.3 million Earths fit inside the Sun",
     "script": "1.3 million Earths could fit inside the Sun. And the Sun? It's not even a big star. Some stars are around a thousand times wider. Next to them, our Sun is a tiny dot. Feeling small yet?",
     "keywords": "sun space",
+    "visuals": [
+      "sun",
+      "sun",
+      "stars",
+      "red giant star",
+      "sun space",
+      "earth from space"
+    ],
     "highlight": [
       "million",
       "Sun",
@@ -112,6 +159,13 @@
     "title": "You're 99.9999% empty space",
     "script": "You're 99.9999 percent empty space. Every atom in you is basically nothing. If an atom were a stadium, its nucleus would be a pea in the middle. So why don't you fall through your chair? Electrons push back.",
     "keywords": "atom",
+    "visuals": [
+      "atom",
+      "atom model",
+      "stadium",
+      "chair",
+      "electrons"
+    ],
     "highlight": [
       "empty",
       "nothing",
@@ -128,6 +182,12 @@
     "title": "There's a dead star in your blood",
     "script": "There's a dead star in your blood. The iron in it was forged inside stars that burned out and exploded billions of years ago. Those atoms drifted through space and ended up in you. You're literally made of stardust.",
     "keywords": "nebula",
+    "visuals": [
+      "blood cells",
+      "supernova",
+      "nebula",
+      "stardust"
+    ],
     "highlight": [
       "dead",
       "blood",
@@ -144,6 +204,11 @@
     "title": "The Moon is slowly running away",
     "script": "The Moon is running away from us. Every year it drifts 3.8 centimeters farther, about as fast as your fingernails grow. We know because astronauts left mirrors up there, and scientists still bounce lasers off them.",
     "keywords": "moon",
+    "visuals": [
+      "moon",
+      "moon orbit",
+      "laser"
+    ],
     "highlight": [
       "Moon",
       "running",
@@ -159,6 +224,12 @@
     "title": "The hottest planet isn't the closest one",
     "script": "The hottest planet isn't the closest one. Mercury hugs the Sun, but Venus is hotter. Its thick carbon dioxide atmosphere traps heat like a blanket, pushing the surface to about 465 degrees Celsius. Hot enough to melt lead.",
     "keywords": "lava",
+    "visuals": [
+      "venus planet",
+      "mercury planet",
+      "lava",
+      "foundry"
+    ],
     "highlight": [
       "hottest",
       "Venus",
@@ -174,6 +245,11 @@
     "title": "Astronauts see 16 sunrises every day",
     "script": "Astronauts see 16 sunrises every day. The space station circles Earth every 90 minutes, at almost 28,000 kilometers per hour. That's fast enough to fly from London to New York in about 12 minutes.",
     "keywords": "earth space",
+    "visuals": [
+      "astronaut",
+      "space station",
+      "airplane"
+    ],
     "highlight": [
       "sunrises",
       "London",
@@ -189,6 +265,12 @@
     "title": "This planet rolls around the Sun on its side",
     "script": "One planet rolls around the Sun on its side. Uranus is tilted about 98 degrees. So each pole gets around 42 years of nonstop sunlight, then 42 years of darkness. Scientists think a giant crash knocked it over.",
     "keywords": "planet",
+    "visuals": [
+      "uranus",
+      "planet rotation",
+      "polar night",
+      "asteroid impact"
+    ],
     "highlight": [
       "side",
       "Uranus",
@@ -205,6 +287,12 @@
     "title": "Moon footprints could last millions of years",
     "script": "Moon footprints can last millions of years. There's no wind or rain up there to erase them. Only tiny meteorites slowly wear them down. And orbiting cameras can still spot the astronauts' trails today.",
     "keywords": "moon surface",
+    "visuals": [
+      "astronaut moon",
+      "desert wind",
+      "meteor",
+      "moon surface"
+    ],
     "highlight": [
       "footprints",
       "millions",
@@ -220,6 +308,11 @@
     "title": "Your head is older than your feet",
     "script": "Your head is older than your feet. Gravity slows down time, and it's a tiny bit weaker the higher you go. Scientists have actually measured the difference with atomic clocks, over a height of just 33 centimeters.",
     "keywords": "clock",
+    "visuals": [
+      "person standing",
+      "clock",
+      "atomic clock"
+    ],
     "highlight": [
       "head",
       "feet",
@@ -238,6 +331,12 @@
     "keywords": [
       "moon",
       "paper"
+    ],
+    "visuals": [
+      "moon",
+      "folding paper",
+      "stack of paper",
+      "chalkboard equations"
     ],
     "highlight": [
       "Paper",
