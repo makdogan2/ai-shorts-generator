@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install FFmpeg and fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Install Python packages
+        run: pip install -r requirements.txt pytest imageio-ffmpeg
+      # Windows users get FFmpeg 7+ from winget; some bugs only appear there, so render with FFmpeg 7 too.
+      - name: Use FFmpeg 7 for rendering
+        run: |
+          mkdir -p "$HOME/ff7"
+          ln -s "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" "$HOME/ff7/ffmpeg"
+          echo "$HOME/ff7" >> "$GITHUB_PATH"
+      - run: ffmpeg -version | head -1
+      - run: python -m pytest -v tests

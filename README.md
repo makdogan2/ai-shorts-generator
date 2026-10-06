@@ -1,5 +1,7 @@
 # AI Shorts Generator
 
+[![tests](https://github.com/makdogan2/ai-shorts-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/makdogan2/ai-shorts-generator/actions/workflows/tests.yml)
+
 A free, fully automated pipeline that turns short text scripts into ready-to-upload vertical videos for **YouTube Shorts, TikTok and Instagram Reels**. One shared engine runs any number of channels ("niches"), each with its own scripts, voice, colors and music.
 
 Write the scripts once. The pipeline handles the AI voiceover, stock footage, word-by-word captions, background music and the final 1080×1920 render, then writes the title, description and hashtags for you.
@@ -44,7 +46,7 @@ Videos appear in `output/<niche>/`. The setup scripts and console messages are i
 ### macOS / Linux
 
 ```bash
-pip install edge-tts requests pillow   # FFmpeg must also be installed
+pip install -r requirements.txt       # FFmpeg must also be installed
 python pipeline.py                     # all niches
 python pipeline.py space psychology    # selected niches
 python pipeline.py --list              # niches and progress
@@ -104,6 +106,7 @@ Copy an existing folder in `niches/`, rename it, then edit its `settings.json` a
 | `caption_pop` | Pop-in animation for each caption word (default `true`) |
 | `progress_bar` | `"top"` (default), `"bottom"` or `false` |
 | `hook_title` | Show the hook sentence as a big title from the very first frame (default `true`) |
+| `zoom` | Gentle push-in / pull-out on every scene (default `0.08`, `0` turns it off) |
 
 Missing settings fall back to sensible defaults.
 
@@ -135,6 +138,17 @@ Missing settings fall back to sensible defaults.
 | `highlight` | Words shown in the highlight color, in addition to numbers |
 | `title`, `description`, `tags` | Written to the upload `.txt` |
 | `music`, `music_start` | Optional: a track from the niche's or shared `muzik/` folder, and the second to start from |
+
+## Tests
+
+```bash
+pip install pytest
+python -m pytest tests
+```
+
+Unit tests cover word timing, scene planning, stock-footage filtering and caption images. Render tests build real
+videos from synthetic clips and run the quality check on them; they need FFmpeg. GitHub Actions runs everything on
+every push, rendering with FFmpeg 7 like Windows installs do.
 
 ## API keys
 

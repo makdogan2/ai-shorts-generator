@@ -69,6 +69,7 @@ DEFAULTS = {
     "caption_pop": True,         # kelimeler küçük bir büyüme efektiyle ekrana gelir
     "progress_bar": "top",       # "top" | "bottom" | false: videonun dolduğunu gösteren ince çubuk
     "hook_title": True,          # giriş cümlesi ilk kareden itibaren üstte büyük başlık olarak durur
+    "zoom": 0.08,                # her sahnede hafif yakınlaşma/uzaklaşma oranı (0: kapalı)
 }
 POP = [(0.80, 1), (1.12, 2)]     # kelime girişi: (ölçek, kare sayısı) adımları, sonra normal boy
 BAR_H = 12                       # ilerleme çubuğu kalınlığı (px)
@@ -458,6 +459,15 @@ def relevant(query, text):
     return bool(need) and all(any(h.startswith(n) or n.startswith(h) and len(h) >= 4 for h in have) for n in need)
 
 
+def tag_rank(query, tags):
+    """Aramanın ilk kelimesi etiket listesinde kaçıncı sırada (küçük = daha alakalı)."""
+    first = next((_stem(w) for w in re.findall(r"[a-z]+", query.lower()) if w not in STOP), "")
+    for i, t in enumerate(tags.lower().split(",")):
+        if any(_stem(w).startswith(first) for w in re.findall(r"[a-z]+", t)):
+            return i
+    return 99
+
+
 def fetch_pexels(query, n=4):
     r = requests.get(
         "https://api.pexels.com/videos/search",
@@ -486,11 +496,14 @@ def fetch_pexels(query, n=4):
 def fetch_pixabay(query, n=4):
     r = requests.get(
         "https://pixabay.com/api/videos/",
-        params={"key": PIXABAY_KEY, "q": query, "per_page": 20, "safesearch": "true"},
+        params={"key": PIXABAY_KEY, "q": query, "per_page": 100, "safesearch": "true"},
         timeout=30,
     )
     r.raise_for_status()
     hits = [h for h in r.json().get("hits", []) if relevant(query, h.get("tags", ""))]
+    # aranan şey etiketlerin başındaysa klip asıl olarak onu gösteriyordur; en iyi adaylar arasından rastgele
+    hits.sort(key=lambda h: tag_rank(query, h.get("tags", "")))
+    hits = hits[:max(3 * n, 6)]
     random.shuffle(hits)
     paths = []
     for h in hits:
@@ -644,8 +657,12 @@ def render(niche, slug, total, durs, clips, words, highlights, music=None, music
                 cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-t", f"{seg:.3f}",
                        "-vf", SEG_NORM, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
         else:
-            vf = (f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-                  f"fps={FPS},setsar=1,eq=brightness=-0.08,{SEG_NORM}")
+            vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            z = cfg["zoom"]
+            if z:   # çift sahneler yakınlaşır, tekler uzaklaşır: durağan klipler de canlı görünür
+                grow = f"t/{seg:.3f}" if i % 2 == 0 else f"(1-t/{seg:.3f})"
+                vf += f"scale=w='trunc({W}*(1+{z}*{grow})/2)*2':h=-2:eval=frame,crop={W}:{H},"
+            vf += f"fps={FPS},setsar=1,eq=brightness=-0.08,{SEG_NORM}"
             # aynı klip tekrar gelirse farklı bir yerinden başlar
             clip = clips[i % len(clips)]
             seen[clip] = seen.get(clip, -1) + 1
@@ -662,6 +679,8 @@ def render(niche, slug, total, durs, clips, words, highlights, music=None, music
     # altyazı: her kelime için (png, başlangıç, bitiş); pop açıksa önce küçük, sonra büyük, sonra normal boy
     pngs, shows = [], []
     for i, (s, e, w) in enumerate(words):
+        if hook and s < hook[1] - 0.05:
+            continue   # kanca cümlesi zaten üstte başlık olarak duruyor; ortada tekrar yazılmaz
         end = words[i + 1][0] if i + 1 < len(words) else e
         color = cfg["highlight_color"] if is_highlight(w, highlights) else "white"
         states, t0 = [], s
@@ -827,7 +846,8 @@ async def produce(niche):
             if not clips and attempt == 0:
                 print("  stok klip yok, gradyan arka plan kullanılıyor")
             render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook)
-            problems = check_video(video, total, (words[0][0] + 0.1, words[-1][1] - 0.1))
+            start = hook[1] if hook else words[0][0]   # kanca sırasında ortada yazı yok
+            problems = check_video(video, total, (start + 0.1, words[-1][1] - 0.1))
             if not problems:
                 break
             print(f"  KALİTE KONTROLÜ: {'; '.join(problems)}")
@@ -857,7 +877,7 @@ def check_existing(niches):
             p = n.out / f"{t['slug']}.mp4"
             if not p.exists():
                 continue
-            problems = check_video(p)
+            problems = check_video(p, speech=(2.2, duration(p) - 0.8))   # ilk ~2 sn kanca başlığı
             bad += bool(problems)
             print(f"{'SORUNLU' if problems else 'tamam  '}  {n.name}/{t['slug']}" +
                   (f"  ->  {'; '.join(problems)}" if problems else ""))
