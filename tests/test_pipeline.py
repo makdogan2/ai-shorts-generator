@@ -218,3 +218,48 @@ def test_quality_check_catches_green_screen(niche, tmp_path):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=0x22dd22:s=720x1280:r=25:d=2",
                     "-c:v", "libx264", "-pix_fmt", "yuv420p", str(green)], check=True)
     assert P.green_screen_seconds(green) >= 1.5
+
+
+# ------------------------------------------------------------------ topics validator
+
+GOOD_SCRIPT = ("Paper can reach the Moon. Just fold it 42 times. Every fold doubles its thickness, so a sheet a tenth "
+               "of a millimeter thick ends up over 400,000 kilometers tall. You cannot really fold it that much, but the math is real.")
+
+
+def good_topic(**over):
+    t = {"slug": "paper-moon", "title": "Paper can reach the Moon", "script": GOOD_SCRIPT, "keywords": ["moon"],
+         "visuals": ["moon", "folding paper", "stack of paper", "chalkboard"], "highlight": ["Moon", "Paper"],
+         "description": "Doubling.", "tags": "#space #shorts"}
+    t.update(over)
+    return t
+
+
+def test_validate_accepts_good_topic():
+    errors, warnings = P.validate_topics([good_topic()])
+    assert errors == [] and warnings == []
+
+
+def test_validate_catches_problems():
+    errors, warnings = P.validate_topics([
+        good_topic(visuals=["moon"]),                                   # 4 sentences, 1 search
+        good_topic(slug="paper-moon", highlight=["Jupiter"]),           # duplicate slug, highlight not in script
+        good_topic(slug="Bad Slug", script="Did you know #space is " + "very " * 30 + "big?"),
+        {"slug": "x"},
+    ])
+    text = " | ".join(errors)
+    assert "visuals" in text and "aynı slug" in text and "Jupiter" in text
+    assert "kebab-case" in text and "hashtag" in text and "eksik alan" in text
+
+
+def test_validate_warns_on_long_hook():
+    long_hook = "The Moon is drifting away from the Earth every year. " + GOOD_SCRIPT.split(". ", 1)[1]
+    _, warnings = P.validate_topics([good_topic(script=long_hook, highlight=["Moon"])])
+    assert any("kanca" in w for w in warnings)
+
+
+def test_repo_topics_have_no_errors():
+    for folder in sorted((Path(P.__file__).parent / "niches").iterdir()):
+        f = folder / "topics.json"
+        if f.exists():
+            errors, _ = P.validate_topics(json.loads(f.read_text(encoding="utf-8")))
+            assert errors == [], (folder.name, errors)

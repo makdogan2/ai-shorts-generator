@@ -48,7 +48,7 @@
     "script": "Saturn could float in your bathtub. Well, almost. It's mostly hydrogen and helium, so it's less dense than water. The only problem? You'd need a bathtub more than 120,000 kilometers wide.",
     "keywords": "saturn",
     "visuals": [
-      "saturn",
+      "saturn planet",
       "bathtub",
       "saturn",
       "bathtub",
@@ -136,7 +136,7 @@
     "script": "1.3 million Earths could fit inside the Sun. And the Sun? It's not even a big star. Some stars are around a thousand times wider. Next to them, our Sun is a tiny dot. Feeling small yet?",
     "keywords": "sun space",
     "visuals": [
-      "sun",
+      "sun surface",
       "sun",
       "stars",
       "red giant star",
@@ -225,7 +225,7 @@
     "script": "The hottest planet isn't the closest one. Mercury hugs the Sun, but Venus is hotter. Its thick carbon dioxide atmosphere traps heat like a blanket, pushing the surface to about 465 degrees Celsius. Hot enough to melt lead.",
     "keywords": "lava",
     "visuals": [
-      "venus planet",
+      "venus",
       "mercury planet",
       "lava",
       "foundry"
@@ -288,7 +288,7 @@
     "script": "Moon footprints can last millions of years. There's no wind or rain up there to erase them. Only tiny meteorites slowly wear them down. And orbiting cameras can still spot the astronauts' trails today.",
     "keywords": "moon surface",
     "visuals": [
-      "astronaut moon",
+      "moon surface",
       "desert wind",
       "meteor",
       "moon surface"

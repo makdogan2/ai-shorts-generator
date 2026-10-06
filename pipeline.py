@@ -21,6 +21,7 @@ Kullanım:
     python pipeline.py space           # sadece bir niş (birden fazla da yazılabilir)
     python pipeline.py --list          # nişleri ve video sayılarını listeler
     python pipeline.py --check space   # hazır videoları kalite kontrolünden geçirir
+    python pipeline.py --validate space  # senaryoları kurallara göre denetler (kelime sayısı, kanca, visuals...)
 """
 import asyncio
 import functools
@@ -836,7 +837,7 @@ async def produce(niche):
             a, b = spans[0]
             end = words[spans[1][0]][0] if len(spans) > 1 else words[b][1]
             hook = (" ".join(t["script"].split()[a:b + 1]), end)
-        highlights = {clean(h) for h in t.get("highlight", [])}
+        highlights = {clean(w) for h in t.get("highlight", []) for w in h.split()}   # "dinner plates" -> iki kelime
         music, music_start = pick_music(niche, t)
         if music:
             print(f"  müzik: {music.name} ({music_start:.0f}. saniyeden)")
@@ -869,6 +870,63 @@ async def produce(niche):
     return made, failed
 
 
+REQUIRED = ("slug", "title", "script", "keywords", "highlight", "description", "tags")
+
+
+def validate_topics(topics):
+    """topics.json'u CLAUDE.md'deki senaryo kurallarına göre denetler. Dönüş: (hatalar, uyarılar).
+    Hata = video üretimini bozar ya da kurala açıkça aykırı; uyarı = kurala uymuyor ama üretilebilir."""
+    errors, warnings, seen = [], [], set()
+    for i, t in enumerate(topics):
+        name = t.get("slug") or f"#{i + 1}"
+        missing = [k for k in REQUIRED if not t.get(k)]
+        if missing:
+            errors.append(f"{name}: eksik alan(lar): {', '.join(missing)}")
+            continue
+        slug, script = t["slug"], t["script"]
+        if slug in seen:
+            errors.append(f"{slug}: aynı slug iki kez var")
+        seen.add(slug)
+        if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", slug):
+            errors.append(f"{slug}: slug küçük harf ve tire olmalı (kebab-case)")
+        n = len(script.split())
+        if not 32 <= n <= 42:
+            warnings.append(f"{slug}: {n} kelime (kural 32-42)")
+        spans = sentence_spans(script)
+        hook = script.split()[spans[0][0]:spans[0][1] + 1]
+        if len(hook) > 7:
+            warnings.append(f"{slug}: kanca {len(hook)} kelime (en fazla 7): {' '.join(hook)}")
+        if len(t["title"]) > 70:
+            warnings.append(f"{slug}: başlık {len(t['title'])} karakter (en fazla 70)")
+        if re.search(r"[#\"\u201c\u201d]|[\U0001F000-\U0001FFFF]", script):
+            errors.append(f"{slug}: senaryoda hashtag, tırnak ya da emoji var")
+        words = {clean(w) for w in script.split()}
+        for h in t["highlight"]:
+            if any(clean(w) not in words for w in h.split()):
+                errors.append(f"{slug}: highlight '{h}' senaryoda birebir geçmiyor")
+        v = t.get("visuals")
+        if v is None:
+            warnings.append(f"{slug}: visuals yok (görüntüler genel anahtar kelimeden seçilir)")
+        elif len(v) != len(spans):
+            errors.append(f"{slug}: {len(spans)} cümle var ama {len(v)} visuals araması")
+    return errors, warnings
+
+
+def validate_niches(niches):
+    """--validate: senaryoları kurallara göre denetler; hata varsa çıkış kodu 1."""
+    bad = 0
+    for n in niches:
+        errors, warnings = validate_topics(n.topics)
+        print(f"\n{n.name}: {len(n.topics)} konu, {len(errors)} hata, {len(warnings)} uyarı")
+        for e in errors:
+            print("  HATA   " + e)
+        for w in warnings:
+            print("  uyarı  " + w)
+        bad += len(errors)
+    if bad:
+        sys.exit(1)
+
+
 def check_existing(niches):
     """--check: hazır videoları kalite kontrolünden geçirir."""
     bad = 0
@@ -890,6 +948,9 @@ async def main():
         for n in find_niches([]):
             done = sum((n.out / f"{t['slug']}.mp4").exists() for t in n.topics)
             print(f"{n.name:15s} {done}/{len(n.topics)} video hazır   ({n.cfg.get('channel', '')})")
+        return
+    if "--validate" in args:
+        validate_niches(find_niches([a for a in args if a != "--validate"]))
         return
     if "--check" in args:
         check_existing(find_niches([a for a in args if a != "--check"]))

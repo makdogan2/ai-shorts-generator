@@ -21,6 +21,7 @@ Steps:
    Give every topic a `visuals` list with one concrete, filmable search per sentence (see CLAUDE.md).
 5. Create `niches/<folder>/muzik/BURAYA-MUZIK-AT.txt` with the same text as the one in `niches/space/muzik/`.
 6. Add `{"folder": "<folder>", "label": "<Short English label>"}` to `niches/index.json`.
-7. Validate all three JSON files with the command in CLAUDE.md and fix any error.
+7. Validate all three JSON files with the command in CLAUDE.md, then run `python pipeline.py --validate <folder>`
+   and fix every error and warning it reports.
 8. Show a short summary: channel name, voice, and every hook (first sentence) as a list.
    Then tell the user to render with `calistir.bat <folder>` (or `python pipeline.py <folder>`).
