@@ -18,6 +18,7 @@ Steps:
    `music: true`, `sfx: true`, and a channel name suggestion.
 4. Write `niches/<folder>/topics.json` following the script rules in CLAUDE.md exactly. Every first sentence is a hook of at most 7 words.
    Use only facts you are sure of; if you can search the web, verify each number. Leave out any fact you cannot verify instead of guessing.
+   Give every topic a `visuals` list with one concrete, filmable search per sentence (see CLAUDE.md).
 5. Create `niches/<folder>/muzik/BURAYA-MUZIK-AT.txt` with the same text as the one in `niches/space/muzik/`.
 6. Add `{"folder": "<folder>", "label": "<Short English label>"}` to `niches/index.json`.
 7. Validate all three JSON files with the command in CLAUDE.md and fix any error.

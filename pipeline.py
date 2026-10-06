@@ -10,8 +10,9 @@ Tek ortak kod, birden fazla niş (kanal):
 
 Özellikler:
   - Kelime zamanlamalı ücretsiz yapay zeka seslendirme
-  - Anahtar kelimeye göre stok video, bulunamazsa yedek aramalar
-  - Kelime kelime altyazı; sayılar ve "highlight" kelimeleri vurgulu
+  - Her cümleye kendi stok videosu ("visuals"), yoksa anahtar kelimeye göre; bulunamazsa yedek aramalar
+  - Kelime kelime, zıplayarak gelen altyazı; sayılar ve "highlight" kelimeleri vurgulu; üstte ilerleme çubuğu
+  - Her videodan sonra otomatik kalite kontrolü (altyazı, ses seviyesi, süre); bozuksa yeniden üretir
   - Key yoksa: hareketli gradyan (+ istenirse kayan yıldız alanı) arka plan
   - Arka plan müziği anlatıma göre seviyelenir, toplam ses YouTube standardı -14 LUFS
 
@@ -19,9 +20,12 @@ Kullanım:
     python pipeline.py                 # tüm nişleri üretir
     python pipeline.py space           # sadece bir niş (birden fazla da yazılabilir)
     python pipeline.py --list          # nişleri ve video sayılarını listeler
+    python pipeline.py --check space   # hazır videoları kalite kontrolünden geçirir
 """
 import asyncio
+import functools
 import json
+import math
 import os
 import random
 import re
@@ -40,6 +44,9 @@ SHARED_MUSIC = HERE / "muzik"
 OUT_ROOT = HERE / "output"
 CACHE = HERE / "cache"
 W, H, FPS = 1080, 1920, 30
+# Her sahne aynı piksel/renk ayarlarıyla kodlanır. Klipler farklı renk etiketleriyle gelince (ör. biri bt709,
+# biri etiketsiz) FFmpeg 7+ birleştirmede filtreleri baştan kuruyor ve altyazılar o sahneden sonra kayboluyordu.
+SEG_NORM = "format=yuv420p,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709"
 TARGET_LUFS = -14            # YouTube'un ses standardı; sessiz videoları YouTube açmaz
 
 # settings.json'da olmayan alanlar için varsayılanlar
@@ -59,7 +66,12 @@ DEFAULTS = {
     "music_fade_in": 0.6,        # 0: müzik ilk karede tam enerjiyle başlar
     "sfx": False,                # true: sahne geçişlerinde whoosh, ilk kesmede boom
     "sfx_rel_db": -8,            # efektlerin anlatıma göre seviyesi (dB)
+    "caption_pop": True,         # kelimeler küçük bir büyüme efektiyle ekrana gelir
+    "progress_bar": "top",       # "top" | "bottom" | false: videonun dolduğunu gösteren ince çubuk
+    "hook_title": True,          # giriş cümlesi ilk kareden itibaren üstte büyük başlık olarak durur
 }
+POP = [(0.80, 1), (1.12, 2)]     # kelime girişi: (ölçek, kare sayısı) adımları, sonra normal boy
+BAR_H = 12                       # ilerleme çubuğu kalınlığı (px)
 
 
 def _key(env_name, file_name):
@@ -267,7 +279,7 @@ def audio_plan(voice, music, music_start, total, cfg, durs):
     cuts = [sum(durs[:i + 1]) for i in range(len(durs) - 1)]
     if cfg["sfx"] and cuts:
         make_sfx()
-        first = cfg["first_scene_seconds"] if cfg["first_scene_seconds"] and abs(durs[0] - cfg["first_scene_seconds"]) < 0.01 else None
+        first = cuts[0] if cfg["first_scene_seconds"] else None   # giriş cümlesi bitince boom
         plan["inputs"] += [["-i", str(SFX_WHOOSH)], ["-i", str(SFX_BOOM)]]
         plan["sfx"] = {"cuts": cuts, "first": first,
                        "wg": v + cfg["sfx_rel_db"] - _SFX_LUFS[SFX_WHOOSH],
@@ -325,6 +337,7 @@ FONT_PATHS = [
 ]
 
 
+@functools.lru_cache(maxsize=None)
 def get_font(size):
     for fp in FONT_PATHS:
         if Path(fp).exists():
@@ -346,21 +359,58 @@ def upper(word, lang="en"):
     return word.upper()
 
 
-def make_word_png(word, path, color="white", lang="en"):
-    """Tek kelimelik, şeffaf zeminli, renkli yazı + siyah kontur PNG."""
+def make_word_png(word, path, color="white", lang="en", scale=1.0):
+    """Tek kelimelik, şeffaf zeminli, renkli yazı + siyah kontur PNG. scale: giriş efekti için boy."""
     text = upper(word, lang)
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     size = 140
-    while True:
-        font = get_font(size)
-        bbox = probe.textbbox((0, 0), text, font=font, stroke_width=10)
-        w, h = bbox[2] - bbox[0] + 40, bbox[3] - bbox[1] + 40
-        if w <= 1000 or size <= 60:
+    while size > 60:   # uzun kelimeler ekrana sığana kadar küçülür
+        bbox = probe.textbbox((0, 0), text, font=get_font(size), stroke_width=10)
+        if bbox[2] - bbox[0] + 40 <= 1000:
             break
         size -= 10
+    size, stroke = max(int(size * scale), 20), max(round(10 * scale), 4)
+    font = get_font(size)
+    bbox = probe.textbbox((0, 0), text, font=font, stroke_width=stroke)
+    w, h = bbox[2] - bbox[0] + 40, bbox[3] - bbox[1] + 40
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     ImageDraw.Draw(img).text((20 - bbox[0], 20 - bbox[1]), text, font=font,
-                             fill=color, stroke_width=10, stroke_fill="black")
+                             fill=color, stroke_width=stroke, stroke_fill="black")
+    img.save(path)
+
+
+def make_title_png(text, path, highlights, color, lang="en"):
+    """Giriş cümlesinin tamamı: ortalanmış, en fazla 3 satır, vurgulu kelimeler renkli. İzleyici iddiayı
+    ilk karede okur (kaydırıp geçme kararı yarım saniyede veriliyor)."""
+    words = [upper(w, lang) for w in text.rstrip(".").split()]   # nokta yok; soru işareti kalır
+    raw = text.split()
+    probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    for size in range(104, 50, -6):
+        font, stroke = get_font(size), max(size // 12, 5)
+        space = probe.textlength(" ", font=font)
+        lines, cur, cur_w = [], [], 0.0
+        for i, w in enumerate(words):
+            ww = probe.textlength(w, font=font) + 2 * stroke
+            if cur and cur_w + space + ww > 960:
+                lines.append(cur)
+                cur, cur_w = [], 0.0
+            cur_w += (space if cur else 0) + ww
+            cur.append(i)
+        lines.append(cur)
+        if len(lines) <= 3:
+            break
+    asc, desc = font.getmetrics()
+    lh = asc + desc + 2 * stroke
+    img = Image.new("RGBA", (W, lh * len(lines) + 40), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for li, line in enumerate(lines):
+        widths = [probe.textlength(words[i], font=font) + 2 * stroke for i in line]
+        x = (W - sum(widths) - space * (len(line) - 1)) / 2
+        for i, wd in zip(line, widths):
+            fill = color if is_highlight(raw[i], highlights) else "white"
+            d.text((x + stroke, 20 + li * lh + stroke), words[i], font=font, fill=fill,
+                   stroke_width=stroke, stroke_fill="black")
+            x += wd + space
     img.save(path)
 
 
@@ -383,6 +433,31 @@ def make_starfield(path, width, height):
 
 # ---------------------------------------------------------------- stok video
 
+STOP = {"a", "an", "the", "of", "in", "on", "with", "and", "to", "at", "from", "for", "by", "over", "into"}
+
+
+def _stem(w):
+    for suf in ("ing", "ed", "es", "s"):
+        if w.endswith(suf) and len(w) - len(suf) >= 3:
+            return w[:-len(suf)]
+    return w
+
+
+# aramada istenmedikçe kullanılmayan klipler (ör. "paper" aramasına gelen kâğıt para, yeşil perde çekimleri)
+BLOCK = ["green screen", "greenscreen", "chroma", "money", "dollar", "cash", "coin", "currency", "banknote"]
+
+
+def relevant(query, text):
+    """Klibin etiketleri (ya da adı) aramadaki bütün kelimeleri içeriyor mu? ("folding paper" ~ "paper, folded")
+    Stok siteleri alakasız sonuçlar da döndürüyor (ör. "stack of paper" -> çizgi film bozuk para)."""
+    low = text.lower().replace("-", " ")
+    if any(b in low and b not in query.lower() for b in BLOCK):
+        return False
+    have = {_stem(t) for t in re.findall(r"[a-z]+", text.lower())}
+    need = [_stem(w) for w in re.findall(r"[a-z]+", query.lower()) if w not in STOP]
+    return bool(need) and all(any(h.startswith(n) or n.startswith(h) and len(h) >= 4 for h in have) for n in need)
+
+
 def fetch_pexels(query, n=4):
     r = requests.get(
         "https://api.pexels.com/videos/search",
@@ -391,7 +466,7 @@ def fetch_pexels(query, n=4):
         timeout=30,
     )
     r.raise_for_status()
-    vids = r.json().get("videos", [])
+    vids = [v for v in r.json().get("videos", []) if relevant(query, v.get("url", ""))]
     random.shuffle(vids)
     paths = []
     for v in vids:
@@ -415,7 +490,7 @@ def fetch_pixabay(query, n=4):
         timeout=30,
     )
     r.raise_for_status()
-    hits = r.json().get("hits", [])
+    hits = [h for h in r.json().get("hits", []) if relevant(query, h.get("tags", ""))]
     random.shuffle(hits)
     paths = []
     for h in hits:
@@ -454,6 +529,48 @@ def fetch_clips(query, fallback_queries, n=4):
     return []
 
 
+def brightness(clip):
+    """Klibin ilk saniyelerinin ortalama parlaklığı (0-255)."""
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "0.5", "-i", str(clip), "-frames:v", "1",
+                          "-vf", "scale=32:32,format=gray", "-f", "rawvideo", "-"], capture_output=True).stdout
+    return sum(raw) / len(raw) if raw else 0
+
+
+def clips_for_scenes(scenes, keywords, fallback_queries):
+    """Her sahneye bir klip: sahnenin kendi araması (visuals) varsa ondan, yoksa konunun keywords'ünden.
+    Aynı klip mümkün olduğunca tekrar edilmez. Hiç klip yoksa [] (gradyan)."""
+    need = {}
+    for _, q in scenes:
+        if q:
+            need[q] = need.get(q, 0) + 1
+    if scenes and scenes[0][1]:
+        need[scenes[0][1]] += 2   # kanca sahnesi için yedek adaylar: aralarından en aydınlığı seçilir
+    pools = {q: fetch_clips(q, [], c) for q, c in need.items()}
+    for q, c in need.items():
+        if not pools[q]:
+            print(f"  '{q}' için klip bulunamadı, konunun genel aramaları kullanılacak")
+    missing = sum(max(0, c - len(pools[q])) for q, c in need.items()) + sum(1 for _, q in scenes if not q)
+    base = fetch_clips(keywords, fallback_queries, missing) if missing else []
+    if scenes and len(pools.get(scenes[0][1], [])) > 1:
+        # ilk sahne (kanca) için en aydınlık klip: kapkara bir ilk kare kaydırıp geçme sebebi
+        pools[scenes[0][1]].sort(key=brightness, reverse=True)
+    used, out, bi = set(), [], 0
+    for _, q in scenes:
+        fresh = [c for c in pools.get(q, []) if c not in used]
+        if fresh:
+            c = fresh[0]
+        elif base:
+            c, bi = base[bi % len(base)], bi + 1
+        else:
+            c = (pools.get(q) or [None])[0]
+        used.add(c)
+        out.append(c)
+    avail = [c for c in out if c]
+    if not avail:
+        return []
+    return [c or avail[i % len(avail)] for i, c in enumerate(out)]
+
+
 # ---------------------------------------------------------------- kurgu
 
 def scene_durations(total, cfg):
@@ -467,19 +584,50 @@ def scene_durations(total, cfg):
     return [first] + [rest / n] * n
 
 
-def render(niche, slug, total, clips, words, highlights, music=None, music_start=0.0):
+def sentence_spans(script):
+    """Senaryodaki cümleler: [(ilk kelime indeksi, son kelime indeksi), ...]"""
+    toks = script.split()
+    spans, start = [], 0
+    for i, t in enumerate(toks):
+        if t.rstrip("\"')").endswith((".", "!", "?")) or i == len(toks) - 1:
+            spans.append((start, i))
+            start = i + 1
+    return spans
+
+
+def plan_scenes(words, script, total, cfg, visuals):
+    """Sahneler: [(süre, arama)]. topics.json'da "visuals" varsa her cümle kendi sahnesi olur ve
+    görüntü o cümlenin aramasıyla bulunur (uzun cümleler ikiye bölünür). Yoksa eşit süreli sahneler."""
+    if not visuals:
+        return [(d, None) for d in scene_durations(total, cfg)]
+    if isinstance(visuals, str):
+        visuals = [visuals]
+    spans = sentence_spans(script)
+    if len(visuals) != len(spans):
+        print(f"  uyarı: {len(spans)} cümle var ama {len(visuals)} visuals araması; eksikler sonuncuyla doldurulur")
+    bounds = [0.0] + [words[a][0] for a, _ in spans[1:]] + [total]
+    longest = cfg["scene_seconds"] * 1.4
+    scenes = []
+    for k in range(len(spans)):
+        d, q = bounds[k + 1] - bounds[k], visuals[min(k, len(visuals) - 1)]
+        if scenes and d < 0.7:          # çok kısa cümle ("Right?") önceki sahneye eklenir
+            scenes[-1] = (scenes[-1][0] + d, scenes[-1][1])
+            continue
+        parts = max(1, math.ceil(d / longest))
+        scenes += [(d / parts, q)] * parts
+    return scenes
+
+
+def render(niche, slug, total, durs, clips, words, highlights, music=None, music_start=0.0, hook=None):
     out, cfg = niche.out, niche.cfg
     use_gradient = not clips
-    durs = scene_durations(total, cfg)
     n = len(durs)
-    seg = max(durs)
     palette = random.choice(cfg["palettes"])
-    segs = []
-    stars = None
-    drift = 10  # px/sn yıldız kayma hızı
+    segs, stars, drift = [], None, 10  # drift: yıldız kayma hızı (px/sn)
     if use_gradient and cfg["starfield"]:
         stars = out / f"{slug}_stars.png"
-        make_starfield(stars, W + int(seg * drift) + 20, H)
+        make_starfield(stars, W + int(max(durs) * drift) + 20, H)
+    seen = {}
     for i in range(n):
         s = out / f"{slug}_seg{i}.mp4"
         seg = durs[i]
@@ -489,18 +637,19 @@ def render(niche, slug, total, clips, words, highlights, music=None, music_start
                    f"nb_colors=3:c0={c0}:c1={c1}:c2={c2}:seed={random.randint(1, 9999)}")
             if stars:
                 cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-loop", "1", "-i", str(stars),
-                       "-filter_complex", f"[0:v][1:v]overlay=x='-t*{drift}':y=0:shortest=1,format=yuv420p",
+                       "-filter_complex", f"[0:v][1:v]overlay=x='-t*{drift}':y=0:shortest=1,{SEG_NORM}",
                        "-t", f"{seg:.3f}", "-r", str(FPS),
                        "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
             else:
                 cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-t", f"{seg:.3f}",
-                       "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
+                       "-vf", SEG_NORM, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
         else:
             vf = (f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-                  f"fps={FPS},setsar=1,eq=brightness=-0.08")
-            # klip sayısı yetmezse aynı klip farklı bir yerinden tekrar kullanılır
+                  f"fps={FPS},setsar=1,eq=brightness=-0.08,{SEG_NORM}")
+            # aynı klip tekrar gelirse farklı bir yerinden başlar
             clip = clips[i % len(clips)]
-            offset = (i // len(clips)) * 4.0
+            seen[clip] = seen.get(clip, -1) + 1
+            offset = seen[clip] * 4.0
             if offset:
                 offset %= max(duration(clip) - 1, 1)
             cmd = ["ffmpeg", "-y", "-ss", f"{offset:.1f}", "-stream_loop", "-1", "-i", str(clip),
@@ -510,27 +659,50 @@ def render(niche, slug, total, clips, words, highlights, music=None, music_start
         segs.append(s)
     lst = out / f"{slug}_list.txt"
     lst.write_text("".join(f"file '{s.name}'\n" for s in segs))
-    pngs = []
+    # altyazı: her kelime için (png, başlangıç, bitiş); pop açıksa önce küçük, sonra büyük, sonra normal boy
+    pngs, shows = [], []
     for i, (s, e, w) in enumerate(words):
-        png = out / f"{slug}_w{i}.png"
-        make_word_png(w, png, cfg["highlight_color"] if is_highlight(w, highlights) else "white", cfg["lang"])
-        pngs.append(png)
+        end = words[i + 1][0] if i + 1 < len(words) else e
+        color = cfg["highlight_color"] if is_highlight(w, highlights) else "white"
+        states, t0 = [], s
+        if cfg["caption_pop"] and end - s > 0.15:
+            for scale, frames in POP:
+                states.append((scale, t0, t0 + frames / FPS))
+                t0 += frames / FPS
+        states.append((1.0, t0, end))
+        for k, (scale, a, b) in enumerate(states):
+            png = out / f"_w{i}{'abc'[k]}.png"   # kısa adlar: Windows komut satırı sınırına takılmasın
+            make_word_png(w, png, color, cfg["lang"], scale)
+            pngs.append(png)
+            shows.append((len(pngs) + 1, a, b, "(W-w)/2:(H-h)/2"))
+    title = None
+    if hook:   # (metin, bitiş saniyesi): giriş cümlesi üstte başlık olarak ilk kareden itibaren
+        title = out / "_title.png"
+        make_title_png(hook[0], title, highlights, cfg["highlight_color"], cfg["lang"])
+        pngs.append(title)
+        shows.append((len(pngs) + 1, 0.0, hook[1], "(W-w)/2:H*0.17"))
     plan = audio_plan(out / f"{slug}.mp3", music, music_start, total, cfg, durs)
     # cwd=out olduğu için dosya adları göreli (yol sorunlarını önler)
-    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", lst.name, "-i", f"{slug}.mp3"]
+    # -reinit_filter 0: sahne geçişinde filtre grafiği sıfırlanmasın (sıfırlanınca yazı PNG'leri kayboluyordu)
+    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-reinit_filter", "0", "-i", lst.name,
+           "-i", f"{slug}.mp3"]
     for png in pngs:
         cmd += ["-i", png.name]
     for inp in plan["inputs"]:
         cmd += inp
     chain, prev = [], "0:v"
-    for i, (s, e, w) in enumerate(words):
-        end = words[i + 1][0] if i + 1 < len(words) else e
-        label = f"v{i + 1}"
+    for j, (idx, a, b, pos) in enumerate(shows):
         # yarı açık aralık: geçiş karesinde iki kelime üst üste binmesin
-        chain.append(f"[{prev}][{i + 2}:v]overlay=(W-w)/2:(H-h)/2:"
-                     f"enable='gte(t,{s:.3f})*lt(t,{end:.3f})'[{label}]")
-        prev = label
-    vmap = f"[{prev}]" if len(chain) else "0:v"
+        chain.append(f"[{prev}][{idx}:v]overlay={pos}:enable='gte(t,{a:.3f})*lt(t,{b:.3f})'[c{j}]")
+        prev = f"c{j}"
+    if cfg["progress_bar"]:
+        y = H - BAR_H if cfg["progress_bar"] == "bottom" else 0
+        col = "0x" + cfg["highlight_color"].lstrip("#")
+        chain.append(f"color=c={col}:s={W}x{BAR_H}:r={FPS}:d={total:.3f}[barc]")
+        chain.append(f"[{prev}]drawbox=x=0:y={y}:w=iw:h={BAR_H}:color=black@0.45:t=fill[barbg]")
+        chain.append(f"[barbg][barc]overlay=x='-w+w*t/{total:.3f}':y={y}[bar]")
+        prev = "bar"
+    vmap = f"[{prev}]" if chain else "0:v"
     chain.append(audio_graph(1, len(pngs) + 2, total, plan))
     cmd += ["-filter_complex", ";".join(chain)]
     cmd += ["-map", vmap, "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast",
@@ -539,6 +711,67 @@ def render(niche, slug, total, clips, words, highlights, music=None, music_start
     run(cmd, cwd=out)
     for f in segs + pngs + [lst] + ([stars] if stars else []):
         f.unlink()
+
+
+# ---------------------------------------------------------------- kalite kontrolü
+
+def caption_frames(path, fps=5):
+    """Ekranın ortasındaki şeritte altyazı var mı: [(saniye, True/False), ...]
+    Altyazı = beyaz ya da renkli yazı + siyah kontur. Ek kütüphane gerekmez (saf Python)."""
+    bw, bh = 360, 100
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf",
+                          f"fps={fps},crop={W}:300:0:{H // 2 - 150},scale={bw}:{bh}",
+                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+    n, px, res = bw * bh * 3, bw * bh, []
+    for k in range(len(raw) // n):
+        d = raw[k * n:(k + 1) * n]
+        r, g, b = d[0::3], d[1::3], d[2::3]
+        txt = sum(1 for x, y, z in zip(r, g, b) if (x > 215 and y > 215 and z > 215) or (x > 200 and y > 150 and z < 110))
+        blk = sum(1 for x, y, z in zip(r, g, b) if x < 40 and y < 40 and z < 40)
+        res.append((k / fps, txt > 0.004 * px and blk > 0.01 * px))
+    return res
+
+
+def green_screen_seconds(path):
+    """Ekranın çoğunu düz yeşil (yeşil perde) kaplayan saniye sayısı."""
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf", "fps=2,scale=32:56",
+                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+    n, bad = 32 * 56 * 3, 0
+    for k in range(len(raw) // n):
+        d = raw[k * n:(k + 1) * n]
+        g = sum(1 for r, gg, b in zip(d[0::3], d[1::3], d[2::3]) if gg > 140 and gg > r + 50 and gg > b + 50)
+        bad += g > 0.5 * 32 * 56
+    return bad / 2
+
+
+def check_video(path, expected=None, speech=None):
+    """Videoyu kontrol eder, bulunan sorunların listesini döndürür (boş liste = sorun yok)."""
+    try:
+        d = duration(path)
+    except Exception:
+        return ["dosya okunamıyor"]
+    problems = []
+    if expected and abs(d - expected) > 0.5:
+        problems.append(f"süre {d:.1f} sn, beklenen {expected:.1f} sn")
+    if d >= 60:
+        problems.append(f"{d:.0f} sn: Shorts için 60 saniyenin altında olmalı")
+    loud = lufs(["-i", str(path)])
+    if not -16 <= loud <= -12:
+        problems.append(f"ses seviyesi {loud:.1f} LUFS (hedef {TARGET_LUFS})")
+    green = green_screen_seconds(path)
+    if green >= 0.5:
+        problems.append(f"{green:.1f} sn yeşil perde görüntüsü")
+    a, b = speech or (0.4, d - 0.8)
+    hits = [ok for t, ok in caption_frames(path) if a <= t <= b]
+    if hits:
+        cover = sum(hits) / len(hits)
+        gap = longest = 0
+        for ok in hits:
+            gap = 0 if ok else gap + 1
+            longest = max(longest, gap)
+        if cover < 0.85 or longest > 5:
+            problems.append(f"altyazı eksik (konuşmanın %{cover * 100:.0f}'inde var, en uzun boşluk {longest / 5:.1f} sn)")
+    return problems
 
 
 # ---------------------------------------------------------------- ana akış
@@ -550,7 +783,7 @@ async def produce(niche):
     n_music = len(niche.music_tracks()) if cfg["music"] else 0
     print(f"\n=== {cfg.get('channel', niche.name)} ({niche.name}) — {len(niche.topics)} konu, "
           f"ses: {cfg['voice']}, müzik: {n_music} parça ===")
-    made = 0
+    made, failed = 0, []
     for t in niche.topics:
         slug = t["slug"]
         if (niche.out / f"{slug}.mp4").exists():
@@ -577,21 +810,58 @@ async def produce(niche):
         if ratio < 0.95:
             print("  uyarı: eksik kelimelerin zamanı tahmin edildi")
         total = duration(mp3) + 0.3
-        clips = fetch_clips(t["keywords"], cfg["fallback_queries"], len(scene_durations(total, cfg)))
-        if not clips:
-            print("  stok klip yok, gradyan arka plan kullanılıyor")
+        scenes = plan_scenes(words, t["script"], total, cfg, t.get("visuals"))
+        hook = None
+        if cfg["hook_title"]:
+            spans = sentence_spans(t["script"])
+            a, b = spans[0]
+            end = words[spans[1][0]][0] if len(spans) > 1 else words[b][1]
+            hook = (" ".join(t["script"].split()[a:b + 1]), end)
         highlights = {clean(h) for h in t.get("highlight", [])}
         music, music_start = pick_music(niche, t)
         if music:
             print(f"  müzik: {music.name} ({music_start:.0f}. saniyeden)")
-        render(niche, slug, total, clips, words, highlights, music, music_start)
+        video = niche.out / f"{slug}.mp4"
+        for attempt in range(2):
+            clips = clips_for_scenes(scenes, t["keywords"], cfg["fallback_queries"])
+            if not clips and attempt == 0:
+                print("  stok klip yok, gradyan arka plan kullanılıyor")
+            render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook)
+            problems = check_video(video, total, (words[0][0] + 0.1, words[-1][1] - 0.1))
+            if not problems:
+                break
+            print(f"  KALİTE KONTROLÜ: {'; '.join(problems)}")
+            if attempt == 0:
+                print("  farklı kliplerle yeniden üretiliyor...")
+        if problems:
+            bad = niche.out / f"{slug}.HATALI.mp4"
+            bad.unlink(missing_ok=True)
+            video.rename(bad)
+            print(f"  ! kontrolden geçmedi, {bad.name} olarak bırakıldı (yükleme). Sonraki çalıştırmada yeniden denenir.")
+            failed.append(f"{niche.name}/{slug}")
+            continue
         (niche.out / f"{slug}.txt").write_text(
             f"{t['title']}\n\n{t.get('description', '')}\n\n{t.get('tags', cfg['default_tags'])}",
             encoding="utf-8",
         )
         made += 1
-        print(f"  hazır: output/{niche.name}/{slug}.mp4 ({total:.1f} sn)")
-    return made
+        print(f"  hazır: output/{niche.name}/{slug}.mp4 ({total:.1f} sn, {len(scenes)} sahne, kontrol: tamam)")
+    return made, failed
+
+
+def check_existing(niches):
+    """--check: hazır videoları kalite kontrolünden geçirir."""
+    bad = 0
+    for n in niches:
+        for t in n.topics:
+            p = n.out / f"{t['slug']}.mp4"
+            if not p.exists():
+                continue
+            problems = check_video(p)
+            bad += bool(problems)
+            print(f"{'SORUNLU' if problems else 'tamam  '}  {n.name}/{t['slug']}" +
+                  (f"  ->  {'; '.join(problems)}" if problems else ""))
+    print(f"\n{bad} sorunlu video." if bad else "\nHepsi kontrolden geçti.")
 
 
 async def main():
@@ -601,16 +871,23 @@ async def main():
             done = sum((n.out / f"{t['slug']}.mp4").exists() for t in n.topics)
             print(f"{n.name:15s} {done}/{len(n.topics)} video hazır   ({n.cfg.get('channel', '')})")
         return
+    if "--check" in args:
+        check_existing(find_niches([a for a in args if a != "--check"]))
+        return
     niches = find_niches(args)
     mode = "Pixabay" if PIXABAY_KEY else ("Pexels" if PEXELS_KEY else "gradyan (key'siz)")
     print(f"Görsel kaynağı: {mode} | Nişler: {', '.join(n.name for n in niches)}")
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg bulunamadı, önce kur.")
     CACHE.mkdir(exist_ok=True)
-    total = 0
+    total, failed = 0, []
     for n in niches:
-        total += await produce(n)
+        made, bad = await produce(n)
+        total += made
+        failed += bad
     print(f"\nToplam {total} yeni video üretildi.")
+    if failed:
+        print(f"Kontrolden geçemeyen {len(failed)} video (.HATALI.mp4): {', '.join(failed)}")
 
 
 if __name__ == "__main__":

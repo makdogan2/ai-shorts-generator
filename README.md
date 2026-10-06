@@ -13,8 +13,11 @@ niches/<niche>/topics.json ─► AI voiceover ─► stock footage ─► capti
 
 - **Multi-niche.** Every folder in `niches/` is a channel with its own scripts and settings. One command renders them all.
 - **Free neural voiceover.** Microsoft Edge voices through `edge-tts`, with word-level timing. No paid TTS API needed.
-- **Automatic stock footage.** Searches Pixabay or Pexels by keyword, crops to vertical, and falls back to the niche's broader searches if a topic returns nothing.
-- **Word-by-word captions.** Big centered captions synced to the voice. Numbers and chosen keywords are highlighted in the niche's color.
+- **Footage that matches every sentence.** Give each sentence its own search (`visuals`) and every scene cuts on a sentence boundary with footage of what is being said. Without it, clips come from the topic keywords and the niche's fallback searches.
+- **Pop-in, word-by-word captions.** Big centered captions synced to the voice, each word popping in with a quick scale animation. Numbers and chosen keywords are highlighted in the niche's color.
+- **Hook title on the first frame.** The whole opening claim is on screen from frame one, so viewers read it before they decide to swipe.
+- **Progress bar.** A thin bar in the highlight color fills up across the video, so viewers see how short it is.
+- **Automatic quality check.** After every render the engine checks that captions stay on screen for the whole voiceover, that loudness is on target and that the video is under 60 seconds. A failed video is re-rendered with different clips; if it still fails it is saved as `*.HATALI.mp4` so it never gets uploaded by mistake.
 - **Works without API keys.** With no key, it renders an animated gradient background, optionally with a drifting starfield.
 - **Built-in sound effects.** Original, synthesized whooshes land exactly on every scene cut, with a boom on the hook cut. No licensing needed.
 - **Background music with auto-mixing.** Each video gets a track (chosen per topic or automatically). Quiet intros are skipped, and the music is leveled under the voice and faded in and out.
@@ -45,6 +48,7 @@ pip install edge-tts requests pillow   # FFmpeg must also be installed
 python pipeline.py                     # all niches
 python pipeline.py space psychology    # selected niches
 python pipeline.py --list              # niches and progress
+python pipeline.py --check space       # run the quality check on finished videos
 ```
 
 ## Project layout
@@ -63,7 +67,7 @@ output/<niche>/             rendered videos (git-ignored)
 cache/                      downloaded stock clips, shared by all niches (git-ignored)
 ```
 
-Two example niches are included: **space** (15 space and physics scripts) and **psychology** (14 psychology scripts).
+Two example niches are included: **space** (space and physics scripts) and **psychology** (14 psychology scripts).
 
 ## Add a niche with Claude Code
 
@@ -97,6 +101,9 @@ Copy an existing folder in `niches/`, rename it, then edit its `settings.json` a
 | `music_fade_in` | Seconds of music fade-in (`0` = full energy from the first frame) |
 | `sfx` | Synthesized whoosh on every cut and a deep boom on the first cut |
 | `sfx_rel_db` | How far the effects sit below the voice (dB) |
+| `caption_pop` | Pop-in animation for each caption word (default `true`) |
+| `progress_bar` | `"top"` (default), `"bottom"` or `false` |
+| `hook_title` | Show the hook sentence as a big title from the very first frame (default `true`) |
 
 Missing settings fall back to sensible defaults.
 
@@ -110,6 +117,7 @@ Missing settings fall back to sensible defaults.
   "title": "Hook-style video title",
   "script": "The voiceover text, around 35-40 words for a 15-second short.",
   "keywords": "moon",
+  "visuals": ["folded paper", "stack of paper", "moon"],
   "highlight": ["Moon"],
   "description": "One-line description for the upload.",
   "tags": "#space #science #shorts",
@@ -123,6 +131,7 @@ Missing settings fall back to sensible defaults.
 | `slug` | Unique file name for the video |
 | `script` | Text that gets voiced and captioned |
 | `keywords` | Stock footage search, 1–2 English words work best. A list like `["moon", "paper"]` mixes clips from several searches |
+| `visuals` | Optional: one footage search per sentence, in order. Each sentence becomes its own scene (long ones are split) |
 | `highlight` | Words shown in the highlight color, in addition to numbers |
 | `title`, `description`, `tags` | Written to the upload `.txt` |
 | `music`, `music_start` | Optional: a track from the niche's or shared `muzik/` folder, and the second to start from |

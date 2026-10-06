@@ -139,7 +139,8 @@ Write ${n} short videos. Script language: ${L}. Reply with ONLY one JSON object,
 Rules for every script:
 - 32 to 42 words, read aloud by a text-to-speech voice in about 15 seconds.
 - The FIRST sentence is a hook of at most 7 words: a shocking, surprising claim or question that makes the viewer think "no way" within 1.5 seconds. Example: "Paper can reach the Moon."
-- Then explain it with concrete numbers or details, conversational, talking to the viewer ("you"). End with a twist or a short punchy line.
+- The best hooks shrink or flip something everyone knows ("Mount Everest is tiny.").
+- Then explain it with concrete numbers or details, conversational, talking to the viewer ("you"). End with a twist or a short punchy line that leads naturally back into the hook, so the video loops.
 - Use ONLY well-established facts you are confident are true. No myths, no rumors, no speculation, no medical, legal or investment advice. Numbers must be accurate.
 - Plain text only: no emojis, no hashtags, no quotes inside the script.
 
@@ -157,6 +158,7 @@ JSON shape:
       "title": "catchy video title in ${L}, under 70 characters",
       "script": "the full script in ${L}",
       "keywords": ["English stock footage search 1-2 words", "a second, different 1-2 word search"],
+      "visuals": ["one English stock-footage search of 1-3 words per sentence of the script, in order: something you can literally see while that sentence is spoken"],
       "highlight": ["2 to 4 key words copied exactly from the script"],
       "description": "one sentence in ${L}",
       "tags": "#niche #topic #shorts"
@@ -185,6 +187,7 @@ function clean(raw, nicheText, lang, voice, channelIn) {
     const kws = (Array.isArray(t.keywords) ? t.keywords : [t.keywords]).map(String).map((s) => s.trim()).filter(Boolean).slice(0, 3);
     return { slug, title: String(t.title || "").slice(0, 100) || slug, script: t.script.trim(),
       keywords: kws.length ? kws : ["abstract background"],
+      ...(Array.isArray(t.visuals) && t.visuals.length ? { visuals: t.visuals.map(String).map((v) => v.trim()).filter(Boolean).slice(0, 10) } : {}),
       highlight: (Array.isArray(t.highlight) ? t.highlight : []).map(String).slice(0, 5),
       description: String(t.description || ""), tags: String(t.tags || raw.default_tags || "#shorts") };
   });
