@@ -56,10 +56,11 @@ English stock-footage search for something you can literally see while that sent
 `starfield` (true only for space/night themes), `palettes` (2-3 lists of three dark "0xRRGGBB" colors),
 `music` (true/false), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
 `caption_pop` (true), `progress_bar` ("top", "bottom" or false), `hook_title` (true: the hook sentence stays on screen
-as a big title from the first frame).
+as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off).
 
 ## Conventions
 
 - Never commit music, API keys (`pixabay_key.txt`, `pexels_key.txt`) or rendered videos; `.gitignore` covers them.
 - Validate JSON after editing: `python -c "import json,sys; [json.load(open(f, encoding='utf-8')) for f in sys.argv[1:]]" <files>`.
 - To add a niche, use the `/new-niche` command.
+- After changing `pipeline.py`, run `python -m pytest tests` (render tests need FFmpeg). GitHub Actions runs them on every push.

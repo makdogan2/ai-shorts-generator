@@ -17,3 +17,4 @@ pexels_key.txt
 **/muzik/*.wav
 **/muzik/*.m4a
 output-muzikli/
+.pytest_cache/
