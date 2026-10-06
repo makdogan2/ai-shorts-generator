@@ -51,6 +51,7 @@ python pipeline.py                     # all niches
 python pipeline.py space psychology    # selected niches
 python pipeline.py --list              # niches and progress
 python pipeline.py --check space       # run the quality check on finished videos
+python pipeline.py --validate space    # check scripts against the rules (length, hook, visuals)
 ```
 
 ## Project layout
@@ -79,7 +80,15 @@ If you have a Claude Pro or Max plan, you can create a niche without an API key.
 /new-niche deep sea creatures 10
 ```
 
-Claude writes `niches/<name>/settings.json` and hook-first, fact-checked scripts in `topics.json`, registers the niche in `niches/index.json`, and tells you how to render it. `CLAUDE.md` explains the project to Claude Code. Open a pull request to share your niche; once merged it shows up on the website.
+Claude writes `niches/<name>/settings.json` and hook-first, fact-checked scripts in `topics.json`, registers the niche in `niches/index.json`, and tells you how to render it.
+
+To keep a channel going, add more scripts to an existing niche:
+
+```
+/more-topics space 10
+```
+
+Claude reads the niche's existing scripts so nothing repeats, checks every number on the web, writes footage searches for each sentence, and runs `python pipeline.py --validate space` before it hands over. `CLAUDE.md` explains the project to Claude Code. Open a pull request to share your niche; once merged it shows up on the website.
 
 ## Adding a niche
 

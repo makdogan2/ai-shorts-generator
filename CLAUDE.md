@@ -8,6 +8,7 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 
 - `pipeline.py` — the engine. `python pipeline.py [niche ...]` renders every topic that has no video yet; `--list` shows progress;
   `--check [niche ...]` runs the quality check on finished videos. A video that fails the check is saved as `<slug>.HATALI.mp4`.
+  `--validate [niche ...]` checks topics.json against the script rules below (errors exit with code 1).
 - `niches/<folder>/settings.json` — channel settings (voice, rate, lang, colors, scene timing, music, sfx).
 - `niches/<folder>/topics.json` — the scripts, one object per video.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
@@ -46,6 +47,8 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 `visuals`: exactly one entry per sentence of the script, in order (a sentence ends with . ! or ?). Each is a 1-3 word
 English stock-footage search for something you can literally see while that sentence is spoken ("folded paper",
 "astronaut", "city traffic"), never an abstract idea ("doubling", "relativity"). Every sentence becomes its own scene.
+The first entry is the most important: it must show the hook's subject itself, big and clear ("saturn planet",
+"sun surface", "mars planet"), because viewers decide to swipe in the first half second.
 `highlight`: 2-4 words copied exactly from the script; numbers are highlighted automatically.
 
 ## settings.json keys
@@ -62,5 +65,6 @@ as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on e
 
 - Never commit music, API keys (`pixabay_key.txt`, `pexels_key.txt`) or rendered videos; `.gitignore` covers them.
 - Validate JSON after editing: `python -c "import json,sys; [json.load(open(f, encoding='utf-8')) for f in sys.argv[1:]]" <files>`.
-- To add a niche, use the `/new-niche` command.
+- To add a niche, use the `/new-niche` command. To add scripts to an existing niche, use `/more-topics <folder> [count]`.
+- After editing a topics.json, run `python pipeline.py --validate <folder>`.
 - After changing `pipeline.py`, run `python -m pytest tests` (render tests need FFmpeg). GitHub Actions runs them on every push.
