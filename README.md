@@ -6,10 +6,44 @@ A free, fully automated pipeline that turns short text scripts into ready-to-upl
 
 Write the scripts once. The pipeline handles the AI voiceover, stock footage, word-by-word captions, background music and the final 1080×1920 render, then writes the title, description and hashtags for you.
 
+![Frames from rendered Shorts: hook title, pop-in caption, sentence-matched footage, highlighted number with progress bar](docs/showcase.jpg)
+
+*Frames from real videos on the [Astro Pocket](https://www.youtube.com/@TheAstroPocket) YouTube channel, rendered end to end by this pipeline.*
+
+## How it works
+
+```mermaid
+flowchart TD
+    A[topics.json<br>hook-first scripts] --> B[edge-tts voice<br>+ word timings]
+    B --> C[One scene per sentence<br>Pixabay search + relevance filter]
+    C --> D[FFmpeg render<br>hook title, pop-in captions,<br>progress bar, zoom, SFX, music]
+    D --> E{Quality check<br>captions, -14 LUFS,<br>green screen, dark hook}
+    E -- fail --> C
+    E -- pass --> F[Preview sheet<br>+ upload calendar]
+    F --> G[YouTube]
+    G --> H[Stats + weekly analysis]
+    H --> I["/more-topics<br>new scripts"]
+    I --> A
 ```
-niches/<niche>/topics.json ─► AI voiceover ─► stock footage ─► captions ─► music + loudness ─► output/<niche>/*.mp4 + *.txt
-                              (edge-tts)      (Pixabay/Pexels)  (Pillow)    (FFmpeg)
-```
+
+The loop is the point: performance numbers decide which hooks, topics and upload times the next batch uses.
+
+## Results
+
+First week of the Astro Pocket channel, all videos made with this engine:
+
+| Metric | First week |
+|---|---|
+| Views | 5.1K |
+| Subscribers gained | +14 |
+| Average "stayed to watch" | ~39% |
+| Best Short | ~1.3K views |
+
+What the data changed:
+
+- Viewers who stayed watched 80–100% of each video, but most swipes happened in the first second. That led to the hook title on frame one, a first scene that always shows the hook's subject, and a quality check that re-renders videos with a dark first frame.
+- Videos published at 02:00 Turkey time (evening in the US) clearly beat the 19:00 slot, so the default calendar moved to 02:00 and 22:00.
+- Captions vanished after a cut on some renders. The cause was an FFmpeg 7 filter re-initialization on mixed color tags; it is fixed and guarded by a regression test that renders real video.
 
 ## Features
 
@@ -24,7 +58,7 @@ niches/<niche>/topics.json ─► AI voiceover ─► stock footage ─► capti
 - **Built-in sound effects.** Original, synthesized whooshes land exactly on every scene cut, with a boom on the hook cut. No licensing needed.
 - **Background music with auto-mixing.** Each video gets a track (chosen per topic or automatically). Quiet intros are skipped, and the music is leveled under the voice and faded in and out.
 - **Loudness-normalized output.** Every video is mixed to −14 LUFS, YouTube's playback standard, so it never plays quieter than other Shorts.
-- **Upload-ready metadata.** Each video gets a `.txt` with its title, description and hashtags.
+- **Upload-ready metadata and calendar.** Each video gets a `.txt` with its title, description and hashtags. After every run, new videos are placed on the next free publishing slots and `yukleme_plani.txt` lists the time, title, description and comma-separated YouTube tags for each one.
 - **Batch and resume.** Videos that already exist are skipped.
 - **One-click Windows setup.** `kurulum.bat` installs everything, including FFmpeg via winget. Also runs on macOS and Linux.
 
@@ -52,6 +86,8 @@ python pipeline.py space psychology    # selected niches
 python pipeline.py --list              # niches and progress
 python pipeline.py --check space       # run the quality check on finished videos
 python pipeline.py --validate space    # check scripts against the rules (length, hook, visuals)
+python pipeline.py --preview space     # one image with a frame per second of the newest videos
+python pipeline.py --plan space        # upcoming publishing calendar
 ```
 
 ## Project layout
@@ -116,6 +152,8 @@ Copy an existing folder in `niches/`, rename it, then edit its `settings.json` a
 | `progress_bar` | `"top"` (default), `"bottom"` or `false` |
 | `hook_title` | Show the hook sentence as a big title from the very first frame (default `true`) |
 | `zoom` | Gentle push-in / pull-out on every scene (default `0.08`, `0` turns it off) |
+| `upload_slots` | Publishing times used for the upload plan (default `["02:00", "22:00"]`) |
+| `base_tags` | Channel tags added to every video's YouTube tags |
 
 Missing settings fall back to sensible defaults.
 

@@ -9,6 +9,9 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 - `pipeline.py` — the engine. `python pipeline.py [niche ...]` renders every topic that has no video yet; `--list` shows progress;
   `--check [niche ...]` runs the quality check on finished videos. A video that fails the check is saved as `<slug>.HATALI.mp4`.
   `--validate [niche ...]` checks topics.json against the script rules below (errors exit with code 1).
+  `--preview [niche ...]` writes `output/<folder>/onizleme.jpg`, a frame-per-second sheet of the newest videos (also written after every render).
+  After every render, new videos get the next free `upload_slots` in `output/<folder>/program.json`, and
+  `output/<folder>/yukleme_plani.txt` lists each one's time, title, description and YouTube tags. `--plan` shows the calendar.
 - `niches/<folder>/settings.json` — channel settings (voice, rate, lang, colors, scene timing, music, sfx).
 - `niches/<folder>/topics.json` — the scripts, one object per video.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
@@ -59,7 +62,8 @@ The first entry is the most important: it must show the hook's subject itself, b
 `starfield` (true only for space/night themes), `palettes` (2-3 lists of three dark "0xRRGGBB" colors),
 `music` (true/false), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
 `caption_pop` (true), `progress_bar` ("top", "bottom" or false), `hook_title` (true: the hook sentence stays on screen
-as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off).
+as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off),
+`upload_slots` (["02:00", "22:00"]: publishing times for the upload plan), `base_tags` (channel tags added to every video).
 
 ## Conventions
 
