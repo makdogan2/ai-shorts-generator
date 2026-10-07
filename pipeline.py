@@ -70,6 +70,17 @@ DEFAULTS = {
     "progress_bar": "top",       # "top" | "bottom" | false: videonun dolduğunu gösteren ince çubuk
     "hook_title": True,          # giriş cümlesi ilk kareden itibaren üstte büyük başlık olarak durur
     "zoom": 0.08,                # her sahnede hafif yakınlaşma/uzaklaşma oranı (0: kapalı)
+    "variety": False,            # true: her video kendine özgü bir görünüm alır (bkz. VARIETY)
+}
+# Çeşitlilik modu: her video bu seçeneklerden slug'ına göre sabit bir kombinasyon alır, böylece
+# kanal tek bir şablon gibi görünmez. settings.json'da "variety": {"zoom": [0, 0.1]} gibi bir sözlükle
+# seçenekler değiştirilebilir; listede olmayan ayarlar (ses, font, altyazı yeri) sabit kalır.
+VARIETY = {
+    "highlight_color": ["#4CC9F0", "#FFD60A", "#FF5D8F", "#7CFF6B", "#FF9F1C", "#B388FF"],
+    "progress_bar": ["top", "top", False],   # alt kısmı Shorts arayüzü kapatıyor
+    "zoom": [0, 0.05, 0.08, 0.12],
+    "scene_seconds": [2.8, 3.2, 3.7],
+    "sfx": [True, False],
 }
 POP = [(0.80, 1), (1.12, 2)]     # kelime girişi: (ölçek, kare sayısı) adımları, sonra normal boy
 BAR_H = 12                       # ilerleme çubuğu kalınlığı (px)
@@ -120,6 +131,28 @@ def lufs(inputs, graph=None):
 
 
 # ---------------------------------------------------------------- nişler
+
+def vary(cfg, slug):
+    """Çeşitlilik modu açıksa bu videoya özel ayarları döndürür (aynı slug her seferinde aynı görünüm)."""
+    if not cfg.get("variety"):
+        return cfg
+    pool = dict(VARIETY)
+    if isinstance(cfg["variety"], dict):
+        pool.update(cfg["variety"])
+    rng = random.Random(f"variety:{slug}")
+    out = dict(cfg)
+    for key in sorted(pool):
+        if pool[key]:
+            out[key] = rng.choice(pool[key])
+    return out
+
+
+def look(cfg):
+    """Konsolda gösterilecek kısa görünüm özeti."""
+    bar = cfg["progress_bar"] or "yok"
+    return (f"renk {cfg['highlight_color']}, çubuk {bar}, zoom {cfg['zoom']}, "
+            f"sahne {cfg['scene_seconds']} sn, efekt {'açık' if cfg['sfx'] else 'kapalı'}")
+
 
 class Niche:
     def __init__(self, folder):
@@ -796,7 +829,7 @@ def check_video(path, expected=None, speech=None):
 # ---------------------------------------------------------------- ana akış
 
 async def produce(niche):
-    cfg = niche.cfg
+    base = cfg = niche.cfg
     migrate_legacy_output(niche)
     niche.out.mkdir(parents=True, exist_ok=True)
     n_music = len(niche.music_tracks()) if cfg["music"] else 0
@@ -809,6 +842,9 @@ async def produce(niche):
             print(f"atlandı (zaten var): {slug}")
             continue
         print(f"üretiliyor: {slug}")
+        niche.cfg = cfg = vary(base, slug)   # render() ayarları niche.cfg'den okur
+        if base.get("variety"):
+            print(f"  görünüm: {look(cfg)}")
         mp3 = niche.out / f"{slug}.mp3"
         voice = cfg["voice"]
         for attempt in range(3):
@@ -866,6 +902,7 @@ async def produce(niche):
         )
         made += 1
         print(f"  hazır: output/{niche.name}/{slug}.mp4 ({total:.1f} sn, {len(scenes)} sahne, kontrol: tamam)")
+    niche.cfg = base
     return made, failed
 
 

@@ -27,6 +27,31 @@ def even_words(script, start=0.0, step=0.35):
     return [(start + i * step, start + i * step + step * 0.8, w) for i, w in enumerate(toks)]
 
 
+# ------------------------------------------------------------------ variety mode
+
+def test_vary_is_off_by_default():
+    cfg = dict(P.DEFAULTS)
+    assert P.vary(cfg, "any-slug") is cfg
+
+
+def test_vary_is_stable_per_slug_and_differs_across_slugs():
+    cfg = dict(P.DEFAULTS, variety=True)
+    a = P.vary(cfg, "slug-a")
+    assert a == P.vary(cfg, "slug-a")
+    assert cfg["variety"] is True and cfg["highlight_color"] == P.DEFAULTS["highlight_color"]  # original untouched
+    looks = {tuple(P.vary(cfg, f"slug-{i}")[k] for k in P.VARIETY) for i in range(20)}
+    assert len(looks) > 10
+    for k, opts in P.VARIETY.items():
+        assert a[k] in opts
+
+
+def test_vary_accepts_custom_options():
+    cfg = dict(P.DEFAULTS, variety={"zoom": [0.2], "sfx": []})
+    out = P.vary(cfg, "x")
+    assert out["zoom"] == 0.2
+    assert out["sfx"] == P.DEFAULTS["sfx"]   # empty list: setting left as is
+
+
 # ------------------------------------------------------------------ word timing
 
 def test_align_words_keeps_complete_timings():

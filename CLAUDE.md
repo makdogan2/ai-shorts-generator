@@ -56,7 +56,10 @@ English stock-footage search for something you can literally see while that sent
 `starfield` (true only for space/night themes), `palettes` (2-3 lists of three dark "0xRRGGBB" colors),
 `music` (true/false), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
 `caption_pop` (true), `progress_bar` ("top", "bottom" or false), `hook_title` (true: the hook sentence stays on screen
-as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off).
+as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off),
+`variety` (true: every video gets its own stable mix of highlight color, progress bar, zoom, scene pace and sfx,
+picked from `VARIETY` in pipeline.py by slug, so a channel doesn't look like one template; a dict such as
+`{"zoom": [0, 0.1]}` overrides the options).
 
 ## Conventions
 
