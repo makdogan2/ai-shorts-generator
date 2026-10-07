@@ -22,8 +22,11 @@ Kullanım:
     python pipeline.py --list          # nişleri ve video sayılarını listeler
     python pipeline.py --check space   # hazır videoları kalite kontrolünden geçirir
     python pipeline.py --validate space  # senaryoları kurallara göre denetler (kelime sayısı, kanca, visuals...)
+    python pipeline.py --preview space   # en yeni videoların kare dökümü: output/space/onizleme.jpg
+    python pipeline.py --plan space      # sıradaki yayın takvimi (her üretimden sonra yukleme_plani.txt yazılır)
 """
 import asyncio
+import datetime as dt
 import functools
 import json
 import math
@@ -71,7 +74,10 @@ DEFAULTS = {
     "progress_bar": "top",       # "top" | "bottom" | false: videonun dolduğunu gösteren ince çubuk
     "hook_title": True,          # giriş cümlesi ilk kareden itibaren üstte büyük başlık olarak durur
     "zoom": 0.08,                # her sahnede hafif yakınlaşma/uzaklaşma oranı (0: kapalı)
+    "upload_slots": ["02:00", "22:00"],   # yükleme planındaki yayın saatleri (bilgisayarın yerel saati)
+    "base_tags": [],             # her videonun YouTube etiketlerine eklenen kanal etiketleri
 }
+DARK_HOOK = 35                   # ilk karenin ortalama parlaklığı bunun altındaysa (0-255) kanca karanlık sayılır
 POP = [(0.80, 1), (1.12, 2)]     # kelime girişi: (ölçek, kare sayısı) adımları, sonra normal boy
 BAR_H = 12                       # ilerleme çubuğu kalınlığı (px)
 
@@ -92,12 +98,17 @@ PEXELS_KEY = _key("PEXELS_API_KEY", "pexels_key.txt")
 
 # ---------------------------------------------------------------- yardımcılar
 
-def run(cmd, cwd=None):
+def run(cmd, cwd=None, fatal=True):
+    """FFmpeg komutunu çalıştırır. fatal=False ise hata programı durdurmaz, False döner."""
     r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    if r.returncode != 0:
-        print("\nFFmpeg hatası (son satırlar):")
-        print("\n".join(r.stderr.strip().splitlines()[-12:]))
+    if r.returncode == 0:
+        return True
+    lines = r.stderr.strip().splitlines()
+    print("\nFFmpeg hatası (son satırlar):" if fatal else "  FFmpeg uyarısı: " + (lines[-1] if lines else "?"))
+    if fatal:
+        print("\n".join(lines[-12:]))
         raise SystemExit(1)
+    return False
 
 
 def duration(path):
@@ -641,39 +652,49 @@ def render(niche, slug, total, durs, clips, words, highlights, music=None, music
     if use_gradient and cfg["starfield"]:
         stars = out / f"{slug}_stars.png"
         make_starfield(stars, W + int(max(durs) * drift) + 20, H)
+    def gradient_cmd(i, seg, s):
+        c0, c1, c2 = palette[i % 3], palette[(i + 1) % 3], palette[(i + 2) % 3]
+        src = (f"gradients=size={W}x{H}:rate={FPS}:duration={seg:.3f}:speed=0.03:"
+               f"nb_colors=3:c0={c0}:c1={c1}:c2={c2}:seed={random.randint(1, 9999)}")
+        if stars:
+            return ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-loop", "1", "-i", str(stars),
+                    "-filter_complex", f"[0:v][1:v]overlay=x='-t*{drift}':y=0:shortest=1,{SEG_NORM}",
+                    "-t", f"{seg:.3f}", "-r", str(FPS),
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
+        return ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-t", f"{seg:.3f}",
+                "-vf", SEG_NORM, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
+
+    def clip_cmd(i, seg, s, clip, offset, z):
+        vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+        if z:   # çift sahneler yakınlaşır, tekler uzaklaşır: durağan klipler de canlı görünür
+            grow = f"t/{seg:.3f}" if i % 2 == 0 else f"(1-t/{seg:.3f})"
+            vf += f"scale=w='trunc({W}*(1+{z}*{grow})/2)*2':h=-2:eval=frame,crop={W}:{H},"
+        vf += f"fps={FPS},setsar=1,eq=brightness=-0.08,{SEG_NORM}"
+        return ["ffmpeg", "-y", "-ss", f"{offset:.1f}", "-stream_loop", "-1", "-i", str(clip),
+                "-t", f"{seg:.3f}",
+                "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
+
     seen = {}
     for i in range(n):
         s = out / f"{slug}_seg{i}.mp4"
         seg = durs[i]
         if use_gradient:
-            c0, c1, c2 = palette[i % 3], palette[(i + 1) % 3], palette[(i + 2) % 3]
-            src = (f"gradients=size={W}x{H}:rate={FPS}:duration={seg:.3f}:speed=0.03:"
-                   f"nb_colors=3:c0={c0}:c1={c1}:c2={c2}:seed={random.randint(1, 9999)}")
-            if stars:
-                cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-loop", "1", "-i", str(stars),
-                       "-filter_complex", f"[0:v][1:v]overlay=x='-t*{drift}':y=0:shortest=1,{SEG_NORM}",
-                       "-t", f"{seg:.3f}", "-r", str(FPS),
-                       "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
-            else:
-                cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", src, "-t", f"{seg:.3f}",
-                       "-vf", SEG_NORM, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
+            run(gradient_cmd(i, seg, s))
         else:
-            vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-            z = cfg["zoom"]
-            if z:   # çift sahneler yakınlaşır, tekler uzaklaşır: durağan klipler de canlı görünür
-                grow = f"t/{seg:.3f}" if i % 2 == 0 else f"(1-t/{seg:.3f})"
-                vf += f"scale=w='trunc({W}*(1+{z}*{grow})/2)*2':h=-2:eval=frame,crop={W}:{H},"
-            vf += f"fps={FPS},setsar=1,eq=brightness=-0.08,{SEG_NORM}"
             # aynı klip tekrar gelirse farklı bir yerinden başlar
             clip = clips[i % len(clips)]
             seen[clip] = seen.get(clip, -1) + 1
             offset = seen[clip] * 4.0
             if offset:
                 offset %= max(duration(clip) - 1, 1)
-            cmd = ["ffmpeg", "-y", "-ss", f"{offset:.1f}", "-stream_loop", "-1", "-i", str(clip),
-                   "-t", f"{seg:.3f}",
-                   "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(s)]
-        run(cmd)
+            z = cfg["zoom"]
+            # bir sahne hazırlanamazsa video durmaz: önce zoom'suz, o da olmazsa düz arka planla devam eder
+            if not run(clip_cmd(i, seg, s, clip, offset, z), fatal=False):
+                if z and run(clip_cmd(i, seg, s, clip, offset, 0), fatal=False):
+                    print(f"  uyarı: sahne {i + 1} zoom'suz hazırlandı")
+                else:
+                    print(f"  uyarı: sahne {i + 1} için klip açılamadı ({Path(clip).name}), düz arka plan kullanıldı")
+                    run(gradient_cmd(i, seg, s))
         segs.append(s)
     lst = out / f"{slug}_list.txt"
     lst.write_text("".join(f"file '{s.name}'\n" for s in segs))
@@ -764,13 +785,23 @@ def green_screen_seconds(path):
     return bad / 2
 
 
-def check_video(path, expected=None, speech=None):
-    """Videoyu kontrol eder, bulunan sorunların listesini döndürür (boş liste = sorun yok)."""
+def first_frame_light(path):
+    """İlk karenin ortalama parlaklığı (0-255)."""
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-frames:v", "1",
+                          "-vf", "scale=32:56,format=gray", "-f", "rawvideo", "-"], capture_output=True).stdout
+    return sum(raw) / len(raw) if raw else 0
+
+
+def check_video(path, expected=None, speech=None, hook=False):
+    """Videoyu kontrol eder, bulunan sorunların listesini döndürür (boş liste = sorun yok).
+    hook=True: ilk kare çok karanlıksa da sorun sayılır (izleyici yarım saniyede kaydırıyor)."""
     try:
         d = duration(path)
     except Exception:
         return ["dosya okunamıyor"]
     problems = []
+    if hook and first_frame_light(path) < DARK_HOOK:
+        problems.append("ilk kare çok karanlık")
     if expected and abs(d - expected) > 0.5:
         problems.append(f"süre {d:.1f} sn, beklenen {expected:.1f} sn")
     if d >= 60:
@@ -803,7 +834,7 @@ async def produce(niche):
     n_music = len(niche.music_tracks()) if cfg["music"] else 0
     print(f"\n=== {cfg.get('channel', niche.name)} ({niche.name}) — {len(niche.topics)} konu, "
           f"ses: {cfg['voice']}, müzik: {n_music} parça ===")
-    made, failed = 0, []
+    made, failed, fresh, fresh_topics = 0, [], [], []
     for t in niche.topics:
         slug = t["slug"]
         if (niche.out / f"{slug}.mp4").exists():
@@ -848,7 +879,7 @@ async def produce(niche):
                 print("  stok klip yok, gradyan arka plan kullanılıyor")
             render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook)
             start = hook[1] if hook else words[0][0]   # kanca sırasında ortada yazı yok
-            problems = check_video(video, total, (start + 0.1, words[-1][1] - 0.1))
+            problems = check_video(video, total, (start + 0.1, words[-1][1] - 0.1), hook=attempt == 0)
             if not problems:
                 break
             print(f"  KALİTE KONTROLÜ: {'; '.join(problems)}")
@@ -866,7 +897,17 @@ async def produce(niche):
             encoding="utf-8",
         )
         made += 1
+        fresh.append(video)
+        fresh_topics.append(t)
         print(f"  hazır: output/{niche.name}/{slug}.mp4 ({total:.1f} sn, {len(scenes)} sahne, kontrol: tamam)")
+    if fresh:   # bu çalıştırmada üretilenlerin kare dökümü: yüklemeden önce tek bakışta kontrol
+        out = make_preview(fresh, niche.out / "onizleme.jpg")
+        if out:
+            print(f"\n  Önizleme (yüklemeden önce bak): {out}")
+        plan, prog = write_plan(niche, fresh_topics)
+        print(f"  Yükleme planı (saat, başlık, açıklama, etiketler): {plan}")
+        for t in fresh_topics:
+            print(f"    {prog[t['slug']].replace('T', ' ')}  {t['slug']}")
     return made, failed
 
 
@@ -927,6 +968,103 @@ def validate_niches(niches):
         sys.exit(1)
 
 
+def youtube_tags(t, cfg, limit=450):
+    """YouTube'un 'Etiketler' kutusu için virgüllü liste: konu aramaları, vurgular, başlık ve kanal etiketleri."""
+    kws = t.get("keywords") or []
+    kws = [kws] if isinstance(kws, str) else list(kws)
+    cand = kws + list(t.get("visuals") or []) + [h.lower() for h in t.get("highlight", [])] + \
+        [t["title"].lower()] + list(cfg.get("base_tags") or [])
+    out, seen = [], set()
+    for c in cand:
+        c = re.sub(r"[^\w\s'.-]", "", str(c)).strip().lower()
+        if c and c not in seen and len(", ".join(out + [c])) <= limit:
+            out.append(c)
+            seen.add(c)
+    return ", ".join(out)
+
+
+def next_slots(taken, slots, count, now=None):
+    """Sıradaki boş yayın saatleri: en son planlanan saatten (ya da şimdiden) sonra, slots listesindeki saatlerde."""
+    now = now or dt.datetime.now()
+    start = max([now] + list(taken))
+    times = sorted(dt.time.fromisoformat(x) for x in slots)
+    out, day = [], start.date()
+    while len(out) < count:
+        for tm in times:
+            when = dt.datetime.combine(day, tm)
+            if when > start and when not in taken and len(out) < count:
+                out.append(when)
+        day += dt.timedelta(days=1)
+    return out
+
+
+def write_plan(niche, topics, now=None):
+    """Yeni videoları sıradaki boş saatlere yerleştirir; output/<niş>/program.json takvimi tutar,
+    yukleme_plani.txt her videonun saatini, başlığını, açıklamasını ve etiketlerini yazar."""
+    prog_f = niche.out / "program.json"
+    prog = json.loads(prog_f.read_text(encoding="utf-8")) if prog_f.exists() else {}
+    taken = {dt.datetime.fromisoformat(v) for k, v in prog.items() if k not in {t["slug"] for t in topics}}
+    for t, when in zip(topics, next_slots(taken, niche.cfg["upload_slots"], len(topics), now)):
+        prog[t["slug"]] = when.isoformat(timespec="minutes")
+    prog_f.write_text(json.dumps(dict(sorted(prog.items(), key=lambda kv: kv[1])), indent=2), encoding="utf-8")
+    days = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
+    blocks = []
+    for t in sorted(topics, key=lambda t: prog[t["slug"]]):
+        w = dt.datetime.fromisoformat(prog[t["slug"]])
+        blocks.append(f"=== {days[w.weekday()]} {w:%d.%m %H:%M}  |  {t['slug']}.mp4\n"
+                      f"BAŞLIK:\n{t['title']}\n\n"
+                      f"AÇIKLAMA:\n{t.get('description', '')}\n{t.get('tags', niche.cfg['default_tags'])}\n\n"
+                      f"ETİKETLER:\n{youtube_tags(t, niche.cfg)}\n")
+    path = niche.out / "yukleme_plani.txt"
+    path.write_text("\n".join(blocks), encoding="utf-8")
+    return path, prog
+
+
+def make_preview(videos, path, per_row=16):
+    """Videoların saniye saniye karelerini tek bir resimde toplar: her video bir satır, ilk kare en solda.
+    İlk karesi çok karanlık olan video işaretlenir (kaydırıp geçme sebebi). Dönüş: resim yolu ya da None."""
+    tw, th, label_w, pad = 120, 213, 300, 8
+    rows = []
+    for v in videos:
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(v), "-vf", f"fps=1,scale={tw}:{th}",
+                              "-frames:v", str(per_row), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                             capture_output=True).stdout
+        n = len(raw) // (tw * th * 3)
+        if not n:
+            continue
+        frames = [Image.frombytes("RGB", (tw, th), raw[i * tw * th * 3:(i + 1) * tw * th * 3]) for i in range(n)]
+        light = first_frame_light(v)
+        rows.append((Path(v), frames, light))
+    if not rows:
+        return None
+    img = Image.new("RGB", (label_w + per_row * tw, len(rows) * (th + pad)), (12, 14, 22))
+    d = ImageDraw.Draw(img)
+    big, small = get_font(22), get_font(17)
+    for r, (v, frames, light) in enumerate(rows):
+        y = r * (th + pad)
+        name = v.stem
+        while d.textlength(name, font=big) > label_w - 24 and len(name) > 4:
+            name = name[:-2]
+        d.text((14, y + 14), name if name == v.stem else name.rstrip("-") + "…", font=big, fill=(240, 240, 245))
+        d.text((14, y + 48), f"{duration(v):.1f} sn", font=small, fill=(150, 160, 185))
+        if light < DARK_HOOK:
+            d.text((14, y + 78), "ilk kare çok karanlık", font=small, fill=(255, 110, 110))
+        for i, f in enumerate(frames):
+            img.paste(f, (label_w + i * tw, y))
+        d.rectangle((label_w, y, label_w + tw - 1, y + th - 1), outline=(255, 214, 10), width=3)   # kanca karesi
+    img.save(path, quality=85)
+    return path
+
+
+def preview_niches(niches):
+    """--preview: her niş için en yeni 12 videonun kare dökümünü output/<niş>/onizleme.jpg olarak yazar."""
+    for n in niches:
+        vids = sorted((n.out / f"{t['slug']}.mp4" for t in n.topics if (n.out / f"{t['slug']}.mp4").exists()),
+                      key=lambda p: p.stat().st_mtime, reverse=True)[:12]
+        out = make_preview(vids, n.out / "onizleme.jpg")
+        print(f"{n.name}: " + (f"{len(vids)} video -> {out}" if out else "video yok"))
+
+
 def check_existing(niches):
     """--check: hazır videoları kalite kontrolünden geçirir."""
     bad = 0
@@ -948,6 +1086,19 @@ async def main():
         for n in find_niches([]):
             done = sum((n.out / f"{t['slug']}.mp4").exists() for t in n.topics)
             print(f"{n.name:15s} {done}/{len(n.topics)} video hazır   ({n.cfg.get('channel', '')})")
+        return
+    if "--plan" in args:
+        for n in find_niches([a for a in args if a != "--plan"]):
+            f = n.out / "program.json"
+            prog = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+            now = dt.datetime.now().isoformat(timespec="minutes")
+            print(f"\n{n.name}: sıradaki yayınlar")
+            for slug, when in sorted(prog.items(), key=lambda kv: kv[1]):
+                if when >= now:
+                    print(f"  {when.replace('T', ' ')}  {slug}")
+        return
+    if "--preview" in args:
+        preview_niches(find_niches([a for a in args if a != "--preview"]))
         return
     if "--validate" in args:
         validate_niches(find_niches([a for a in args if a != "--validate"]))

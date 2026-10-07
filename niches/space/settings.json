@@ -38,5 +38,15 @@
   "music_rel_db": -10,
   "music_fade_in": 0,
   "sfx": true,
-  "sfx_rel_db": -8
+  "sfx_rel_db": -8,
+  "upload_slots": [
+    "02:00",
+    "22:00"
+  ],
+  "base_tags": [
+    "space facts",
+    "science facts",
+    "astronomy",
+    "astro pocket"
+  ]
 }

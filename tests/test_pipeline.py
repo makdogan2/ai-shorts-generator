@@ -263,3 +263,60 @@ def test_repo_topics_have_no_errors():
         if f.exists():
             errors, _ = P.validate_topics(json.loads(f.read_text(encoding="utf-8")))
             assert errors == [], (folder.name, errors)
+
+
+@needs_ffmpeg
+def test_render_survives_broken_zoom_and_broken_clip(niche, tmp_path):
+    """A scene that FFmpeg cannot prepare must not stop the video: retry without zoom, then use a plain background."""
+    good = make_clip(tmp_path / "a.mp4", False)
+    broken = tmp_path / "broken.mp4"
+    broken.write_bytes(b"not a video")
+    niche.cfg["zoom"] = "1/("                                       # an expression FFmpeg rejects
+    total = voice(niche, 5.0)
+    words, _ = P.align_words([], "One two three four five six seven eight.", total - 0.3)
+    P.render(niche, "test", total, [total / 2, total / 2], [good, broken], words, set())
+    video = niche.out / "test.mp4"
+    assert video.exists() and abs(P.duration(video) - total) < 0.5
+
+
+@needs_ffmpeg
+def test_preview_sheet_flags_dark_first_frame(tmp_path):
+    from PIL import Image
+    bright = make_clip(tmp_path / "bright.mp4", False)
+    dark = tmp_path / "dark.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=720x1280:r=25:d=2",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", str(dark)], check=True)
+    out = P.make_preview([bright, dark], tmp_path / "onizleme.jpg")
+    w, h = Image.open(out).size
+    assert out.exists() and w > 300 and h > 400                     # two rows
+
+
+# ------------------------------------------------------------------ upload plan
+
+def test_next_slots_skips_taken_and_past():
+    import datetime as dt
+    now = dt.datetime(2026, 10, 7, 10, 30)
+    taken = {dt.datetime(2026, 10, 7, 22, 0)}
+    got = P.next_slots(taken, ["02:00", "22:00"], 3, now)
+    assert got == [dt.datetime(2026, 10, 8, 2, 0), dt.datetime(2026, 10, 8, 22, 0), dt.datetime(2026, 10, 9, 2, 0)]
+
+
+def test_write_plan_continues_calendar(tmp_path):
+    import datetime as dt
+    class N:  # minimal niche
+        out = tmp_path
+        cfg = dict(P.DEFAULTS, base_tags=["space facts"])
+    t1 = good_topic(slug="a"); t2 = good_topic(slug="b")
+    now = dt.datetime(2026, 10, 7, 10, 30)
+    _, prog = P.write_plan(N, [t1], now)
+    assert prog["a"] == "2026-10-07T22:00"
+    path, prog = P.write_plan(N, [t2], now)
+    assert prog["b"] == "2026-10-08T02:00"
+    text = path.read_text(encoding="utf-8")
+    assert "Paper can reach the Moon" in text and "space facts" in text and "Per 08.10 02:00" in text
+
+
+def test_youtube_tags_unique_and_limited():
+    tags = P.youtube_tags(good_topic(), dict(P.DEFAULTS, base_tags=["space facts", "moon"]))
+    parts = tags.split(", ")
+    assert len(parts) == len(set(parts)) and "moon" in parts and len(tags) <= 450
