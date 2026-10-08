@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy · Shorts Factory</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700&display=swap">
+<style>
+:root{--bg:#fff;--ink:#0f0f0f;--soft:#606060;--line:#e2e2e2;--red:#cc0029}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0f0f;--ink:#f1f1f1;--soft:#aaa;--line:#303030;--red:#ff4d6d;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Archivo,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 64px}
+a{color:var(--red)} h1{font-size:2rem;margin:0 0 4px} h2{font-size:1.15rem;margin:32px 0 6px}
+code{font-size:.9em} .meta{color:var(--soft);font-size:.9rem;margin-bottom:28px} nav{font-size:.9rem;margin-bottom:28px}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--soft);font-size:.9rem}
+</style></head><body><main>
+<nav><a href="./">Shorts Factory</a> · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></nav>
+<h1>Privacy Policy</h1>
+<div class="meta">Shorts Factory · Effective 8 October 2026 · Operated by Mehmet Akdogan</div>
+
+<p>Shorts Factory is an open-source program that renders short vertical videos on the user's own computer and,
+if the user chooses, uploads them to the user's own YouTube channel through the YouTube API Services.
+This policy explains what data the program uses and what happens to it.</p>
+
+<h2>YouTube API Services</h2>
+<p>Shorts Factory uses YouTube API Services. By using its upload feature you agree to the
+<a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>. Google's handling of your data is described in the
+<a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+
+<h2>What data is accessed</h2>
+<p>When you connect your Google account, the program asks for permission to upload videos to your YouTube channel
+(the <code>youtube.upload</code> scope). With that permission it sends the videos you rendered, together with the title,
+description, tags and scheduled publishing time that you wrote, to your channel. It does not read your other videos,
+comments, subscribers, messages or any other account data.</p>
+
+<h2>Where data is stored</h2>
+<p>The program runs only on your computer. The OAuth access token Google issues is saved in a file on your computer
+(<code>youtube_token.json</code>) so you do not have to sign in for every upload. Nothing is sent to the developer or to any
+server other than Google's. The developer operates no server and never receives your videos, tokens or account data.</p>
+
+<h2>Sharing</h2>
+<p>Data is shared only with Google/YouTube, and only to perform the uploads you start. It is not sold, shared with
+third parties or used for advertising.</p>
+
+<h2>Revoking access and deleting data</h2>
+<p>You can revoke Shorts Factory's access at any time on your
+<a href="https://myaccount.google.com/permissions">Google account permissions page</a>. To delete the stored token,
+delete <code>youtube_token.json</code> from the program folder. Deleting the program folder removes all data it stored.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the new version is published on this page with a new effective date.</p>
+<footer>Questions: open an issue at <a href="https://github.com/makdogan2/ai-shorts-generator/issues">github.com/makdogan2/ai-shorts-generator/issues</a>.</footer>
+</main></body></html>

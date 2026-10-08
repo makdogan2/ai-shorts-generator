@@ -18,3 +18,7 @@ pexels_key.txt
 **/muzik/*.m4a
 output-muzikli/
 .pytest_cache/
+
+# YouTube API (OAuth istemcisi ve giris tokeni)
+client_secret*.json
+youtube_token.json
