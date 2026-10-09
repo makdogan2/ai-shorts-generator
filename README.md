@@ -14,7 +14,7 @@ Write the scripts once. The pipeline handles the AI voiceover, stock footage, wo
 
 ```mermaid
 flowchart TD
-    A[topics.json<br>hook-first scripts] --> B[edge-tts voice<br>+ word timings]
+    A[topics.json<br>hook-first scripts] --> B[Kokoro or edge-tts voice<br>+ word timings]
     B --> C[One scene per sentence<br>Pixabay search + relevance filter]
     C --> D[FFmpeg render<br>hook title, pop-in captions,<br>progress bar, zoom, SFX, music]
     D --> E{Quality check<br>captions, -14 LUFS,<br>green screen, dark hook}
@@ -48,7 +48,7 @@ What the data changed:
 ## Features
 
 - **Multi-niche.** Every folder in `niches/` is a channel with its own scripts and settings. One command renders them all.
-- **Free neural voiceover.** Microsoft Edge voices through `edge-tts`, with word-level timing. No paid TTS API needed.
+- **Free neural voiceover.** [Kokoro](https://github.com/thewh1teagle/kokoro-onnx), an open-source (Apache 2.0) voice model that runs on your own computer, or Microsoft Edge voices through `edge-tts` for other languages. Kokoro voices each sentence separately and times every word inside it, using the pauses it hears at commas. No paid TTS API needed.
 - **Footage that matches every sentence.** Give each sentence its own search (`visuals`) and every scene cuts on a sentence boundary with footage of what is being said. Without it, clips come from the topic keywords and the niche's fallback searches. For the opening scene the engine downloads several candidates and measures each one's first 1.5 seconds: dark clips drop to the bottom, and among the bright ones the clip with the most movement wins, because viewers decide to swipe in the first half second.
 - **Pop-in, word-by-word captions.** Big centered captions synced to the voice, each word popping in with a quick scale animation. Numbers and chosen keywords are highlighted in the niche's color.
 - **Hook title on the first frame.** The whole opening claim is on screen from frame one, so viewers read it before they decide to swipe.
@@ -75,7 +75,7 @@ Pick ready-made channels or type your own niche, then download the complete kit 
 1. Double-click `kurulum.bat`. It installs the Python packages and FFmpeg, then asks for an optional Pixabay key.
 2. Double-click `calistir.bat` to render every niche. To render a single niche, run `calistir.bat space`.
 
-Videos appear in `output/<niche>/`. The setup scripts and console messages are in Turkish.
+Videos appear in `output/<niche>/`. A niche that uses the Kokoro voice downloads the voice model once on its first run (about 350 MB, into `models/`). The setup scripts and console messages are in Turkish.
 
 ### macOS / Linux
 
@@ -135,7 +135,8 @@ Copy an existing folder in `niches/`, rename it, then edit its `settings.json` a
 | Setting | What it controls |
 |---|---|
 | `channel` | Display name shown in the console |
-| `voice`, `rate` | Narrator voice and speed (any `edge-tts` voice) |
+| `tts` | `"kokoro"` (open-source, runs offline, English) or `"edge"` (Microsoft Edge voices, any language; default) |
+| `voice`, `rate` | Narrator voice and speed: a Kokoro voice such as `af_heart`, `am_michael`, `bm_george`, or any `edge-tts` voice |
 | `fallback_queries` | Generic footage searches used when a topic has no results |
 | `default_tags` | Hashtags used when a topic has none |
 | `highlight_color` | Caption highlight color |

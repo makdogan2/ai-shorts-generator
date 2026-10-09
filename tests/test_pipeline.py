@@ -347,3 +347,39 @@ def test_hook_score_prefers_bright_moving_clips(tmp_path):
     assert P.first_second(moving)[1] > 1
     assert P.hook_score(moving) > P.hook_score(still) > P.hook_score(dark)
 
+
+# ------------------------------------------------------------------ Kokoro voice timing
+
+def _tone(sec, sr=24000):
+    import numpy as np
+    t = np.arange(int(sec * sr)) / sr
+    return (0.5 * np.sin(2 * np.pi * 220 * t)).astype("float32")
+
+
+def test_sentence_word_times_split_on_comma_pause():
+    import numpy as np
+    sr = 24000
+    audio = np.concatenate([_tone(0.5), np.zeros(int(0.2 * sr), "float32"), _tone(0.6)])
+    words = P.sentence_word_times(["On", "Mars,", "Olympus", "rises."], audio, sr, offset=1.0)
+    assert [w[2] for w in words] == ["On", "Mars", "Olympus", "rises"]
+    assert words[0][0] == 1.0 and abs(words[1][1] - 1.5) < 0.02      # first clause ends where the pause starts
+    assert abs(words[2][0] - 1.7) < 0.02 and abs(words[3][1] - 2.3) < 0.02
+    assert all(a < b for a, b, _ in words)
+
+
+def test_sentence_word_times_without_pause_spreads_by_length():
+    words = P.sentence_word_times(["I", "kilometers"], _tone(1.0), 24000)
+    assert words[1][1] - words[1][0] > 3 * (words[0][1] - words[0][0])
+
+
+def test_rate_to_speed():
+    assert P._rate_to_speed("+8%") == 1.08 and P._rate_to_speed("-10%") == 0.9 and P._rate_to_speed(None) == 1.0
+
+
+def test_settings_errors_for_kokoro():
+    ok = {**P.DEFAULTS, "tts": "kokoro", "voice": "af_heart"}
+    assert P.settings_errors(ok) == []
+    assert P.settings_errors({**ok, "lang": "tr"})
+    assert P.settings_errors({**ok, "voice": "en-US-BrianNeural"})
+    assert P.settings_errors({**P.DEFAULTS, "tts": "azure"})
+

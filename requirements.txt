@@ -1,3 +1,5 @@
 edge-tts
 requests
 pillow
+kokoro-onnx
+soundfile

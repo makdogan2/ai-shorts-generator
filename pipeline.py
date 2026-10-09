@@ -55,6 +55,7 @@ TARGET_LUFS = -14            # YouTube'un ses standardı; sessiz videoları YouT
 
 # settings.json'da olmayan alanlar için varsayılanlar
 DEFAULTS = {
+    "tts": "edge",               # "edge": Microsoft Edge sesleri | "kokoro": açık kaynak, bilgisayarda çalışan ses
     "voice": "en-US-AndrewNeural",
     "lang": "en",                # "tr": Türkçe büyük harf kuralları (i -> İ)
     "rate": "+5%",
@@ -197,6 +198,134 @@ async def tts(text, mp3_path, voice, rate):
                 start = ch["offset"] / 1e7
                 words.append((start, start + ch["duration"] / 1e7, ch["text"]))
     return words
+
+
+KOKORO_DIR = HERE / "models"
+KOKORO_FILES = {   # açık kaynak Kokoro-82M (Apache 2.0); ilk kullanımda bir kez indirilir (~350 MB)
+    "kokoro-v1.0.onnx": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx",
+    "voices-v1.0.bin": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin",
+}
+SENTENCE_GAP = 0.28    # Kokoro cümleleri ayrı seslendirilir; aralarına konan sessizlik (sn)
+
+
+@functools.lru_cache(maxsize=1)
+def kokoro_model():
+    try:
+        from kokoro_onnx import Kokoro
+    except ImportError:
+        sys.exit("Kokoro sesi için paket eksik. Şunu çalıştır: python -m pip install kokoro-onnx soundfile")
+    KOKORO_DIR.mkdir(exist_ok=True)
+    for name, url in KOKORO_FILES.items():
+        dest = KOKORO_DIR / name
+        if dest.exists():
+            continue
+        print(f"  ses modeli indiriliyor (bir kereye mahsus): {name}")
+        tmp = dest.with_suffix(".part")
+        with requests.get(url, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with open(tmp, "wb") as f:
+                for chunk in r.iter_content(1 << 20):
+                    f.write(chunk)
+        tmp.rename(dest)
+    return Kokoro(str(KOKORO_DIR / "kokoro-v1.0.onnx"), str(KOKORO_DIR / "voices-v1.0.bin"))
+
+
+def _rate_to_speed(rate):
+    m = re.fullmatch(r"\s*([+-]?\d+(?:\.\d+)?)\s*%\s*", str(rate or "0%"))
+    return 1 + float(m.group(1)) / 100 if m else 1.0
+
+
+def _spoken_weight(token):
+    """Bir kelimenin yaklaşık söylenme uzunluğu: harf sayısı, rakamlar daha uzun okunur ("1.3" = one point three)."""
+    letters = sum(ch.isalpha() for ch in token)
+    digits = sum(ch.isdigit() for ch in token)
+    return letters + 4 * digits + 2
+
+
+def _silences(audio, sr, min_len=0.06):
+    """Sesin içindeki sessiz aralıklar: [(başlangıç, bitiş), ...] saniye. Kısık bölüm = tepe seviyenin %4'ünün altı."""
+    import numpy as np
+    hop = int(sr * 0.01)
+    n = len(audio) // hop
+    if not n:
+        return []
+    frames = np.asarray(audio[:n * hop], dtype="float32").reshape(n, hop)
+    rms = np.sqrt((frames ** 2).mean(axis=1))
+    quiet = list(rms < rms.max() * 0.04) + [False]
+    out, start = [], None
+    for i, q in enumerate(quiet):
+        if q and start is None:
+            start = i
+        elif not q and start is not None:
+            if (i - start) * 0.01 >= min_len:
+                out.append((start * 0.01, i * 0.01))
+            start = None
+    return out
+
+
+def _trim(audio, sr):
+    """Baştaki ve sondaki sessizliği kırpar."""
+    sil = _silences(audio, sr, min_len=0.0)
+    a = sil[0][1] if sil and sil[0][0] == 0 else 0.0
+    b = sil[-1][0] if sil and sil[-1][1] >= len(audio) / sr - 0.011 else len(audio) / sr
+    return audio[int(a * sr):int(b * sr)] if b > a else audio
+
+
+def sentence_word_times(tokens, audio, sr, offset=0.0):
+    """Tek cümlenin kelime zamanları. Virgül gibi duraklar seste sessiz boşluk olarak duyulur: cümle o boşluklardan
+    parçalara bölünür, her parçanın kelimeleri söylenme uzunluklarına göre paylaştırılır. Dönüş: [(start, end, kelime)]."""
+    total = len(audio) / sr
+    pauses = [i for i, t in enumerate(tokens[:-1]) if t.endswith((",", ";", ":"))]
+    gaps = [g for g in _silences(audio, sr) if 0 < g[0] and g[1] < total]
+    gaps = sorted(sorted(gaps, key=lambda g: g[0] - g[1])[:len(pauses)])   # en uzun boşluklar, zaman sırasıyla
+    if len(gaps) != len(pauses):
+        pauses, gaps = [], []
+    bounds = [0.0] + [x for g in gaps for x in g] + [total]
+    groups, start = [], 0
+    for p in pauses + [len(tokens) - 1]:
+        groups.append(tokens[start:p + 1])
+        start = p + 1
+    out = []
+    for gi, group in enumerate(groups):
+        a, b = bounds[2 * gi], bounds[2 * gi + 1]
+        weights = [_spoken_weight(t) for t in group]
+        t, step = a, (b - a) / sum(weights)
+        for tok, w in zip(group, weights):
+            out.append((offset + t, offset + t + w * step, tok.strip(".,!?;:\"'")))
+            t += w * step
+    return out
+
+
+def kokoro_tts(text, mp3_path, voice, rate):
+    """Kokoro ile bilgisayarda seslendirme. Her cümle ayrı üretilir; böylece cümle sınırları kesin bilinir
+    ve kelime zamanları cümle içinde hesaplanır. Dönüş: [(start, end, word), ...] (edge-tts ile aynı biçim)."""
+    import numpy as np
+    import soundfile as sf
+    k = kokoro_model()
+    lang = "en-gb" if voice.startswith("b") else "en-us"
+    toks = text.split()
+    pieces, words, t = [], [], 0.05
+    sr = 24000
+    pieces.append(np.zeros(int(sr * t), dtype="float32"))
+    for a, b in sentence_spans(text):
+        sent = toks[a:b + 1]
+        audio, sr = k.create(" ".join(sent), voice=voice, speed=_rate_to_speed(rate), lang=lang)
+        audio = _trim(np.asarray(audio, dtype="float32"), sr)
+        words += sentence_word_times(sent, audio, sr, t)
+        pieces += [audio, np.zeros(int(sr * SENTENCE_GAP), dtype="float32")]
+        t += len(audio) / sr + SENTENCE_GAP
+    wav = Path(mp3_path).with_suffix(".wav")
+    sf.write(str(wav), np.concatenate(pieces[:-1]), sr)
+    run(["ffmpeg", "-v", "error", "-y", "-i", str(wav), "-c:a", "libmp3lame", "-b:a", "192k", str(mp3_path)])
+    wav.unlink(missing_ok=True)
+    return words
+
+
+async def speak(text, mp3_path, voice, rate, engine="edge"):
+    """Seçilen motorla seslendirir: "edge" (Microsoft Edge sesleri, internet gerekir) ya da "kokoro" (bilgisayarda)."""
+    if engine == "kokoro":
+        return await asyncio.to_thread(kokoro_tts, text, mp3_path, voice, rate)
+    return await tts(text, mp3_path, voice, rate)
 
 
 def align_words(words, script, audio_len):
@@ -874,9 +1003,9 @@ async def produce(niche):
         voice = cfg["voice"]
         for attempt in range(3):
             try:
-                words = await tts(t["script"], mp3, voice, cfg["rate"])
+                words = await speak(t["script"], mp3, voice, cfg["rate"], cfg["tts"])
             except Exception as e:
-                if voice == DEFAULTS["voice"]:
+                if voice == DEFAULTS["voice"] or cfg["tts"] != "edge":
                     raise
                 print(f"  uyarı: '{voice}' sesi çalışmadı ({type(e).__name__}), '{DEFAULTS['voice']}' kullanılıyor")
                 voice = DEFAULTS["voice"]
@@ -982,11 +1111,25 @@ def validate_topics(topics):
     return errors, warnings
 
 
+def settings_errors(cfg):
+    """settings.json'daki ses ayarlarının tutarlılığı."""
+    errs = []
+    if cfg["tts"] not in ("edge", "kokoro"):
+        errs.append(f"settings.json: tts \"edge\" ya da \"kokoro\" olmalı (şu an \"{cfg['tts']}\")")
+    elif cfg["tts"] == "kokoro":
+        if cfg["lang"] != "en":
+            errs.append("settings.json: Kokoro sesi yalnızca İngilizce; bu niş için tts \"edge\" kullan")
+        if not re.fullmatch(r"[ab][fm]_[a-z]+", cfg["voice"]):
+            errs.append(f"settings.json: Kokoro ses adı af_heart, am_michael, bm_george gibi olmalı (şu an \"{cfg['voice']}\")")
+    return errs
+
+
 def validate_niches(niches):
     """--validate: senaryoları kurallara göre denetler; hata varsa çıkış kodu 1."""
     bad = 0
     for n in niches:
         errors, warnings = validate_topics(n.topics)
+        errors = settings_errors(n.cfg) + errors
         print(f"\n{n.name}: {len(n.topics)} konu, {len(errors)} hata, {len(warnings)} uyarı")
         for e in errors:
             print("  HATA   " + e)
