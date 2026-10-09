@@ -117,12 +117,19 @@ def test_tag_rank_prefers_main_subject():
 def test_clips_for_scenes_avoids_repeats_and_falls_back(monkeypatch):
     pools = {"moon": ["m1", "m2", "m3"], "paper": ["p1"], "nothing": [], "satellite": ["k1", "k2"]}
     monkeypatch.setattr(P, "fetch_clips", lambda q, fb, n=4: pools.get(q if isinstance(q, str) else q[0], [])[:n])
-    monkeypatch.setattr(P, "brightness", lambda c: 0)
+    monkeypatch.setattr(P, "hook_score", lambda c: 0)
     scenes = [(1.5, "moon"), (3, "paper"), (3, "paper"), (3, "nothing")]
     clips = P.clips_for_scenes(scenes, "satellite", [])
     assert len(clips) == 4
     assert clips[0] in pools["moon"] and clips[1] == "p1"
     assert clips[2] != "p1" and clips[3] in pools["satellite"]      # fallback to topic keywords
+
+
+def test_clips_for_scenes_puts_best_hook_clip_first(monkeypatch):
+    monkeypatch.setattr(P, "fetch_clips", lambda q, fb, n=4: ["dark", "still", "moving"][:n] if q == "moon" else [])
+    monkeypatch.setattr(P, "hook_score", {"dark": -970, "still": 3.0, "moving": 9.5}.get)
+    clips = P.clips_for_scenes([(1.5, "moon"), (3, "moon")], "x", [])
+    assert clips == ["moving", "still"]
 
 
 def test_clips_for_scenes_returns_empty_without_any_footage(monkeypatch):
@@ -320,3 +327,23 @@ def test_youtube_tags_unique_and_limited():
     tags = P.youtube_tags(good_topic(), dict(P.DEFAULTS, base_tags=["space facts", "moon"]))
     parts = tags.split(", ")
     assert len(parts) == len(set(parts)) and "moon" in parts and len(tags) <= 450
+
+
+# ------------------------------------------------------------------ hook clip scoring
+
+def _lavfi(path, src):
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", src, "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p", str(path)], check=True)
+    return path
+
+
+@needs_ffmpeg
+def test_hook_score_prefers_bright_moving_clips(tmp_path):
+    still = _lavfi(tmp_path / "still.mp4", "color=c=0x8899aa:s=360x640:r=25:d=2")
+    moving = _lavfi(tmp_path / "moving.mp4", "testsrc2=s=360x640:r=25:d=2")
+    dark = _lavfi(tmp_path / "dark.mp4", "color=c=0x050505:s=360x640:r=25:d=2")
+    light, motion = P.first_second(still)
+    assert light > P.DARK_HOOK and motion < 0.5
+    assert P.first_second(moving)[1] > 1
+    assert P.hook_score(moving) > P.hook_score(still) > P.hook_score(dark)
+
