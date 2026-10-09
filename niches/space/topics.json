@@ -348,5 +348,236 @@
     "tags": "#space #moon #math #shorts",
     "music": "Turn In The Sun - Simon Herody.mp3",
     "music_start": 80
+  },
+  {
+    "slug": "grand-canyon-tiny-v2",
+    "title": "The Grand Canyon is tiny",
+    "script": "The Grand Canyon is tiny. On Mars, a canyon called Valles Marineris stretches about 4,000 kilometers. That's almost ten times longer. It plunges up to 7 kilometers deep, five times deeper. Next to that Martian giant, ours is just a scratch.",
+    "keywords": [
+      "mars",
+      "canyon"
+    ],
+    "visuals": [
+      "grand canyon",
+      "mars planet",
+      "canyon aerial",
+      "deep canyon",
+      "mars surface"
+    ],
+    "highlight": [
+      "Grand",
+      "Canyon",
+      "Mars",
+      "Marineris"
+    ],
+    "description": "The canyon on Mars that dwarfs the Grand Canyon.",
+    "tags": "#space #mars #planets #shorts"
+  },
+  {
+    "slug": "moon-narrower-than-australia-v2",
+    "title": "The Moon is narrower than Australia",
+    "script": "The Moon is narrower than Australia. The Moon is only about 3,475 kilometers across. Australia stretches almost 4,000 kilometers from coast to coast. It looks huge hanging in the night sky. But measure it side by side, and it's true.",
+    "keywords": [
+      "moon",
+      "australia"
+    ],
+    "visuals": [
+      "full moon",
+      "moon",
+      "australia aerial",
+      "moon night sky",
+      "map"
+    ],
+    "highlight": [
+      "Moon",
+      "narrower",
+      "Australia"
+    ],
+    "description": "Australia is wider than the Moon.",
+    "tags": "#space #moon #astronomy #shorts"
+  },
+  {
+    "slug": "mars-blue-sunset-v2",
+    "title": "Sunsets on Mars are blue",
+    "script": "Sunsets on Mars are blue. On Earth, air scatters blue light away, so sunsets glow red and orange. On Mars, fine dust lets blue light through more easily. NASA's Curiosity rover photographed it in 2015. On the red planet, the colors flip.",
+    "keywords": [
+      "mars",
+      "sunset"
+    ],
+    "visuals": [
+      "mars planet",
+      "sunset",
+      "mars surface",
+      "mars rover",
+      "blue sunset"
+    ],
+    "highlight": [
+      "Mars",
+      "blue",
+      "Curiosity"
+    ],
+    "description": "Why the Red Planet has blue sunsets.",
+    "tags": "#space #mars #nasa #shorts"
+  },
+  {
+    "slug": "venus-day-longer-than-year-v2",
+    "title": "A day on Venus is longer than its year",
+    "script": "A day on Venus outlasts its year. Venus takes 243 Earth days to spin once. It circles the Sun in just 225 days. It even spins backwards, so the Sun rises in the west. So one Venus day outlasts its entire year.",
+    "keywords": [
+      "venus",
+      "planet"
+    ],
+    "visuals": [
+      "venus planet",
+      "planet rotation",
+      "solar system",
+      "sunrise",
+      "venus planet"
+    ],
+    "highlight": [
+      "Venus",
+      "backwards",
+      "west"
+    ],
+    "description": "The planet that spins slower than it orbits.",
+    "tags": "#space #venus #planets #shorts"
+  },
+  {
+    "slug": "sun-is-white-v2",
+    "title": "The Sun isn't actually yellow",
+    "script": "The Sun isn't actually yellow. It shines in every color at once, making white light. Our air scatters some blue away, so near sunset it looks yellow or orange. From space, it's pure white. So forget every drawing you have ever seen.",
+    "keywords": [
+      "sun",
+      "sunlight"
+    ],
+    "visuals": [
+      "sun surface",
+      "rainbow",
+      "sunset",
+      "earth from space",
+      "child drawing"
+    ],
+    "highlight": [
+      "Sun",
+      "yellow",
+      "white"
+    ],
+    "description": "The true color of the Sun.",
+    "tags": "#space #sun #science #shorts"
+  },
+  {
+    "slug": "earth-marble-black-hole-v2",
+    "title": "Earth could shrink to the size of a marble",
+    "script": "Earth could shrink to a marble. To become a black hole, our planet would need crushing into a ball about 2 centimeters wide. The Sun would need to fit in about 6 kilometers. Squeeze hard enough, and even a planet vanishes.",
+    "keywords": [
+      "earth",
+      "black hole"
+    ],
+    "visuals": [
+      "earth from space",
+      "black hole",
+      "sun surface",
+      "marbles"
+    ],
+    "highlight": [
+      "Earth",
+      "marble",
+      "black",
+      "hole"
+    ],
+    "description": "How small Earth would be as a black hole.",
+    "tags": "#space #blackhole #physics #shorts"
+  },
+  {
+    "slug": "jupiter-storm-bigger-than-earth-v2",
+    "title": "Jupiter has a storm bigger than Earth",
+    "script": "Jupiter has a storm bigger than Earth. Called the Great Red Spot, it's wider than our whole planet. Its winds reach about 640 kilometers per hour. It has raged for at least 150 years. And it is still spinning right now.",
+    "keywords": [
+      "jupiter",
+      "storm"
+    ],
+    "visuals": [
+      "jupiter planet",
+      "jupiter",
+      "hurricane",
+      "storm clouds",
+      "jupiter planet"
+    ],
+    "highlight": [
+      "Jupiter",
+      "storm",
+      "Great",
+      "Red"
+    ],
+    "description": "The giant storm that could swallow our planet.",
+    "tags": "#space #jupiter #planets #shorts"
+  },
+  {
+    "slug": "saturn-rings-thin-v2",
+    "title": "Saturn's rings are impossibly thin",
+    "script": "Saturn's rings are impossibly thin. They stretch hundreds of thousands of kilometers from the planet. Yet the main rings are typically just 10 meters thick. Shrink them to a football field, and they'd be far thinner than paper.",
+    "keywords": [
+      "saturn",
+      "rings"
+    ],
+    "visuals": [
+      "saturn rings",
+      "saturn planet",
+      "saturn",
+      "football field"
+    ],
+    "highlight": [
+      "Saturn's",
+      "thin",
+      "paper"
+    ],
+    "description": "The giant rings that are flatter than paper.",
+    "tags": "#space #saturn #planets #shorts"
+  },
+  {
+    "slug": "astronauts-grow-taller-v2",
+    "title": "Astronauts grow taller in space",
+    "script": "Astronauts grow taller in space. Without gravity pressing down, their spines relax and stretch out. Within just a few days, they can gain about 3 percent in height. Once they land, gravity squeezes them back down. But for a while, it's true.",
+    "keywords": [
+      "astronaut",
+      "space station"
+    ],
+    "visuals": [
+      "astronaut",
+      "spine",
+      "space station",
+      "spacecraft landing",
+      "astronaut"
+    ],
+    "highlight": [
+      "Astronauts",
+      "taller",
+      "gravity"
+    ],
+    "description": "What weightlessness does to your height.",
+    "tags": "#space #astronaut #science #shorts"
+  },
+  {
+    "slug": "earth-spins-faster-than-sound-v2",
+    "title": "Earth spins faster than the speed of sound",
+    "script": "Earth spins faster than sound. At the equator, the ground carries you at over 1,600 kilometers per hour. Sound travels about 1,200. The ground, the air and everything around you move with you. You are flying right now and never notice.",
+    "keywords": [
+      "earth",
+      "planet"
+    ],
+    "visuals": [
+      "earth from space",
+      "equator beach",
+      "fighter jet",
+      "city street",
+      "earth rotation"
+    ],
+    "highlight": [
+      "Earth",
+      "faster",
+      "sound"
+    ],
+    "description": "The speed you never feel.",
+    "tags": "#space #earth #physics #shorts"
   }
 ]
