@@ -49,7 +49,7 @@ What the data changed:
 
 - **Multi-niche.** Every folder in `niches/` is a channel with its own scripts and settings. One command renders them all.
 - **Free neural voiceover.** Microsoft Edge voices through `edge-tts`, with word-level timing. No paid TTS API needed.
-- **Footage that matches every sentence.** Give each sentence its own search (`visuals`) and every scene cuts on a sentence boundary with footage of what is being said. Without it, clips come from the topic keywords and the niche's fallback searches.
+- **Footage that matches every sentence.** Give each sentence its own search (`visuals`) and every scene cuts on a sentence boundary with footage of what is being said. Without it, clips come from the topic keywords and the niche's fallback searches. For the opening scene the engine downloads several candidates and measures each one's first 1.5 seconds: dark clips drop to the bottom, and among the bright ones the clip with the most movement wins, because viewers decide to swipe in the first half second.
 - **Pop-in, word-by-word captions.** Big centered captions synced to the voice, each word popping in with a quick scale animation. Numbers and chosen keywords are highlighted in the niche's color.
 - **Hook title on the first frame.** The whole opening claim is on screen from frame one, so viewers read it before they decide to swipe.
 - **Progress bar.** A thin bar in the highlight color fills up across the video, so viewers see how short it is.

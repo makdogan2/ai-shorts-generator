@@ -78,6 +78,8 @@ DEFAULTS = {
     "base_tags": [],             # her videonun YouTube etiketlerine eklenen kanal etiketleri
 }
 DARK_HOOK = 35                   # ilk karenin ortalama parlaklığı bunun altındaysa (0-255) kanca karanlık sayılır
+MOTION_CAP = 12                  # kanca puanında hareketin üst sınırı: çok çalkantılı klip ekstra puan almaz
+HOOK_EXTRA = 3                   # kanca araması için fazladan indirilen aday klip sayısı
 POP = [(0.80, 1), (1.12, 2)]     # kelime girişi: (ölçek, kare sayısı) adımları, sonra normal boy
 BAR_H = 12                       # ilerleme çubuğu kalınlığı (px)
 
@@ -561,6 +563,30 @@ def brightness(clip):
     return sum(raw) / len(raw) if raw else 0
 
 
+def first_second(clip, secs=1.5, fps=6, size=48):
+    """Klibin ilk saniyeleri: (ilk karenin parlaklığı, hareket). Hareket = art arda karelerin piksel başına
+    ortalama farkı (0-255): duran bir görüntüde ~0, yavaş bir kaydırmada birkaç, hızlı bir sahnede 10+."""
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(clip), "-t", str(secs),
+                          "-vf", f"fps={fps},scale={size}:{size},format=gray", "-f", "rawvideo", "-"],
+                         capture_output=True).stdout
+    n = size * size
+    frames = [raw[i:i + n] for i in range(0, len(raw) - n + 1, n)]
+    if not frames:
+        return 0.0, 0.0
+    light = sum(frames[0]) / n
+    diffs = [sum(abs(a - b) for a, b in zip(f1, f2)) / n for f1, f2 in zip(frames, frames[1:])]
+    return light, (sum(diffs) / len(diffs) if diffs else 0.0)
+
+
+def hook_score(clip):
+    """Kanca sahnesi için puan: karanlık klip en sona düşer, aydınlıklar arasında hareketli olan öne geçer.
+    İzleyici ilk yarım saniyede karar veriyor; duran ya da kapkara bir görüntü kaydırıp geçme sebebi."""
+    light, motion = first_second(clip)
+    if light < DARK_HOOK:
+        return light - 1000
+    return min(motion, MOTION_CAP) + min(light, 120) / 40   # parlaklık en fazla 3 puan: bembeyaz ama duran klip öne geçmesin
+
+
 def clips_for_scenes(scenes, keywords, fallback_queries):
     """Her sahneye bir klip: sahnenin kendi araması (visuals) varsa ondan, yoksa konunun keywords'ünden.
     Aynı klip mümkün olduğunca tekrar edilmez. Hiç klip yoksa [] (gradyan)."""
@@ -569,7 +595,7 @@ def clips_for_scenes(scenes, keywords, fallback_queries):
         if q:
             need[q] = need.get(q, 0) + 1
     if scenes and scenes[0][1]:
-        need[scenes[0][1]] += 2   # kanca sahnesi için yedek adaylar: aralarından en aydınlığı seçilir
+        need[scenes[0][1]] += HOOK_EXTRA   # kanca sahnesi için yedek adaylar: aralarından en iyisi seçilir
     pools = {q: fetch_clips(q, [], c) for q, c in need.items()}
     for q, c in need.items():
         if not pools[q]:
@@ -577,8 +603,11 @@ def clips_for_scenes(scenes, keywords, fallback_queries):
     missing = sum(max(0, c - len(pools[q])) for q, c in need.items()) + sum(1 for _, q in scenes if not q)
     base = fetch_clips(keywords, fallback_queries, missing) if missing else []
     if scenes and len(pools.get(scenes[0][1], [])) > 1:
-        # ilk sahne (kanca) için en aydınlık klip: kapkara bir ilk kare kaydırıp geçme sebebi
-        pools[scenes[0][1]].sort(key=brightness, reverse=True)
+        # ilk sahne (kanca) için aydınlık ve hareketli klip; diğer adaylar sonraki sahnelerde kullanılır
+        scores = {c: hook_score(c) for c in pools[scenes[0][1]]}
+        pools[scenes[0][1]].sort(key=scores.get, reverse=True)
+        best = pools[scenes[0][1]][0]
+        print(f"  kanca klibi: {Path(best).name} (puan {scores[best]:.1f}, {len(scores)} aday)")
     used, out, bi = set(), [], 0
     for _, q in scenes:
         fresh = [c for c in pools.get(q, []) if c not in used]
