@@ -1,6 +1,6 @@
 # Shorts Factory (AI Shorts Generator)
 
-Turns text scripts into vertical YouTube Shorts on Windows: edge-tts voiceover, Pixabay/Pexels stock clips,
+Turns text scripts into vertical YouTube Shorts on Windows: Kokoro (local, open-source) or edge-tts voiceover, Pixabay/Pexels stock clips,
 pop-in word-by-word captions, a progress bar, synthesized whoosh/boom effects, optional background music,
 FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 
@@ -56,7 +56,9 @@ The first entry is the most important: it must show the hook's subject itself, b
 
 ## settings.json keys
 
-`channel`, `voice` (edge-tts voice, e.g. en-US-BrianNeural, en-US-GuyNeural, en-GB-RyanNeural, tr-TR-AhmetNeural),
+`channel`, `tts` ("kokoro": open-source voice that runs on the PC, English only, model downloaded once to `models/`;
+"edge": Microsoft Edge voices, needs internet, any language), `voice` (Kokoro: af_heart, am_michael, am_fenrir, bm_george;
+edge-tts: en-US-BrianNeural, en-GB-RyanNeural, tr-TR-AhmetNeural),
 `rate` ("+8%"), `lang` ("en" or "tr"), `scene_seconds` (3.2), `first_scene_seconds` (1.5),
 `fallback_queries` (3 generic English searches), `default_tags`, `highlight_color` ("#RRGGBB"),
 `starfield` (true only for space/night themes), `palettes` (2-3 lists of three dark "0xRRGGBB" colors),

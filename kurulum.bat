@@ -22,7 +22,7 @@ echo [1/3] Python paketleri kuruluyor...
 if not exist venv %PY% -m venv venv
 call venv\Scripts\activate.bat
 python -m pip install --upgrade pip
-python -m pip install edge-tts requests pillow
+python -m pip install -r requirements.txt
 if errorlevel 1 (
   echo [HATA] Paket kurulumu basarisiz. Internet baglantini kontrol et.
   pause

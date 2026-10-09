@@ -1,6 +1,7 @@
 {
   "channel": "Astro Pocket",
-  "voice": "en-US-BrianNeural",
+  "tts": "kokoro",
+  "voice": "af_heart",
   "rate": "+8%",
   "scene_seconds": 3.2,
   "first_scene_seconds": 1.5,

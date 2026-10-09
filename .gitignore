@@ -22,3 +22,6 @@ output-muzikli/
 # YouTube API (OAuth istemcisi ve giris tokeni)
 client_secret*.json
 youtube_token.json
+
+# Kokoro ses modeli (ilk kullanimda indirilir)
+models/
