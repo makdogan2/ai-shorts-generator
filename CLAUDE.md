@@ -17,7 +17,8 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
 - `niches/index.json` — the list of niches the web app (index.html + site.js, GitHub Pages) shows. Every niche must be listed here.
 - `kurulum.bat` / `calistir.bat` — Windows setup and run scripts. Keep them ASCII with CRLF line endings.
-- `output/<folder>/` — rendered videos (git-ignored).
+- `output/<folder>/` — rendered videos (git-ignored). Fully code-drawn (sim) videos go to `output/<folder>-sim/`;
+  both folders share one publishing calendar, so two videos never get the same slot.
 
 ## Script rules (every topic)
 

@@ -6,7 +6,7 @@ Tek ortak kod, birden fazla niş (kanal):
     niches/<niş>/settings.json   ses, hız, etiketler, renkler, yedek aramalar
     niches/<niş>/topics.json     o nişin senaryoları
     niches/<niş>/muzik/          o nişe özel müzikler (boşsa ortak muzik/ klasörü kullanılır)
-    output/<niş>/                üretilen videolar
+    output/<niş>/                üretilen videolar (kodla çizilen sim videoları: output/<niş>-sim/)
 
 Özellikler:
   - Kelime zamanlamalı ücretsiz yapay zeka seslendirme
@@ -27,6 +27,7 @@ Kullanım:
     python pipeline.py --plan space      # sıradaki yayın takvimi (her üretimden sonra yukleme_plani.txt yazılır)
 """
 import asyncio
+import copy
 import datetime as dt
 import functools
 import json
@@ -163,6 +164,21 @@ class Niche:
                 if tracks:
                     return tracks
         return []
+
+
+def split_outputs(niches):
+    """Kodla çizilen (sim) videolar stok görüntülü olanlardan ayrı klasöre gider: output/<niş>-sim/.
+    Her niş en fazla iki 'görünüme' ayrılır; ikisi aynı yayın takvimini paylaşır (aynı saate iki video düşmez)."""
+    views = []
+    for n in niches:
+        sim_t = [t for t in n.topics if all_sim(t)]
+        stock_t = [t for t in n.topics if not all_sim(t)]
+        stock, sim = copy.copy(n), copy.copy(n)
+        stock.topics, sim.topics = stock_t, sim_t
+        sim.name, sim.out = f"{n.name}-sim", OUT_ROOT / f"{n.name}-sim"
+        stock.siblings, sim.siblings = [sim.out], [stock.out]
+        views += [v for v in (stock, sim) if v.topics]
+    return views
 
 
 def find_niches(names):
@@ -1216,6 +1232,10 @@ def write_plan(niche, topics, now=None):
     prog_f = niche.out / "program.json"
     prog = json.loads(prog_f.read_text(encoding="utf-8")) if prog_f.exists() else {}
     taken = {dt.datetime.fromisoformat(v) for k, v in prog.items() if k not in {t["slug"] for t in topics}}
+    for other in getattr(niche, "siblings", []):   # aynı kanalın diğer klasörü (ör. space-sim) aynı saatleri kullanır
+        f = other / "program.json"
+        if f.exists():
+            taken |= {dt.datetime.fromisoformat(v) for v in json.loads(f.read_text(encoding="utf-8")).values()}
     for t, when in zip(topics, next_slots(taken, niche.cfg["upload_slots"], len(topics), now)):
         prog[t["slug"]] = when.isoformat(timespec="minutes")
     prog_f.write_text(json.dumps(dict(sorted(prog.items(), key=lambda kv: kv[1])), indent=2), encoding="utf-8")
@@ -1295,12 +1315,12 @@ def check_existing(niches):
 async def main():
     args = sys.argv[1:]
     if "--list" in args:
-        for n in find_niches([]):
+        for n in split_outputs(find_niches([])):
             done = sum((n.out / f"{t['slug']}.mp4").exists() for t in n.topics)
             print(f"{n.name:15s} {done}/{len(n.topics)} video hazır   ({n.cfg.get('channel', '')})")
         return
     if "--plan" in args:
-        for n in find_niches([a for a in args if a != "--plan"]):
+        for n in split_outputs(find_niches([a for a in args if a != "--plan"])):
             f = n.out / "program.json"
             prog = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
             now = dt.datetime.now().isoformat(timespec="minutes")
@@ -1310,15 +1330,15 @@ async def main():
                     print(f"  {when.replace('T', ' ')}  {slug}")
         return
     if "--preview" in args:
-        preview_niches(find_niches([a for a in args if a != "--preview"]))
+        preview_niches(split_outputs(find_niches([a for a in args if a != "--preview"])))
         return
     if "--validate" in args:
         validate_niches(find_niches([a for a in args if a != "--validate"]))
         return
     if "--check" in args:
-        check_existing(find_niches([a for a in args if a != "--check"]))
+        check_existing(split_outputs(find_niches([a for a in args if a != "--check"])))
         return
-    niches = find_niches(args)
+    niches = split_outputs(find_niches(args))
     mode = "Pixabay" if PIXABAY_KEY else ("Pexels" if PEXELS_KEY else "gradyan (key'siz)")
     print(f"Görsel kaynağı: {mode} | Nişler: {', '.join(n.name for n in niches)}")
     if not shutil.which("ffmpeg"):

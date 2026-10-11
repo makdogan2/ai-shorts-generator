@@ -474,3 +474,21 @@ def test_all_sim_detects_fully_drawn_topics():
     stock, sim = good_topic(), dict(good_topic(slug="sim-one"), sim=LINEUP)
     sim["visuals"] = ["sim:intro"] * len(sim["visuals"])
     assert not P.all_sim(stock) and P.all_sim(sim)
+
+
+def test_sim_videos_get_their_own_folder_and_share_the_calendar(tmp_path, monkeypatch):
+    monkeypatch.setattr(P, "OUT_ROOT", tmp_path)
+    sim = dict(good_topic(slug="sim-one"), sim=LINEUP)
+    sim["visuals"] = ["sim:intro"] * len(sim["visuals"])
+    niche = P.Niche.__new__(P.Niche)
+    niche.name, niche.cfg, niche.topics, niche.out = "space", dict(P.DEFAULTS), [good_topic(), sim], tmp_path / "space"
+    stock_v, sim_v = P.split_outputs([niche])
+    assert sim_v.out == tmp_path / "space-sim" and [t["slug"] for t in sim_v.topics] == ["sim-one"]
+    assert [t["slug"] for t in stock_v.topics] == ["paper-moon"]
+    now = P.dt.datetime(2026, 10, 11, 12, 0)
+    for v in (stock_v, sim_v):
+        v.out.mkdir()
+        P.write_plan(v, v.topics, now)
+    a = json.loads((stock_v.out / "program.json").read_text())["paper-moon"]
+    b = json.loads((sim_v.out / "program.json").read_text())["sim-one"]
+    assert a != b
