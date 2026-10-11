@@ -492,3 +492,24 @@ def test_sim_videos_get_their_own_folder_and_share_the_calendar(tmp_path, monkey
     a = json.loads((stock_v.out / "program.json").read_text())["paper-moon"]
     b = json.loads((sim_v.out / "program.json").read_text())["sim-one"]
     assert a != b
+
+
+# ------------------------------------------------------------------ variety guards
+
+def test_hook_pattern_flags_repeated_skeleton():
+    assert P.hook_pattern("Jupiter could swallow 1,300 Earths. More.") == P.hook_pattern("Saturn could swallow 764 Earths.")
+    assert P.hook_pattern("Mount Everest is tiny.") != P.hook_pattern("Jupiter is tiny next to the Sun.")
+    base = {"title": "t", "keywords": ["x"], "highlight": ["Saturn"], "description": "d", "tags": "#a"}
+    topics = [dict(base, slug="a", script="Jupiter could swallow 1,300 Earths. Saturn too."),
+              dict(base, slug="b", script="Saturn could swallow 764 Earths. Saturn too.")]
+    _, warnings = P.validate_topics(topics)
+    assert any("kanca kalıbı" in w and "a, b" in w for w in warnings)
+
+
+def test_spread_formats_avoids_back_to_back():
+    topics = [{"slug": "c1", "sim": {"type": "compare"}}, {"slug": "c2", "sim": {"type": "compare"}},
+              {"slug": "c3", "sim": {"type": "compare"}}, {"slug": "l1", "sim": {"type": "lineup"}}]
+    order = [t["slug"] for t in P.spread_formats(topics)]
+    assert sorted(order) == ["c1", "c2", "c3", "l1"]
+    assert order[:3] == ["c1", "l1", "c2"]
+

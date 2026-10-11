@@ -20,6 +20,8 @@ Steps:
 2. Pick the new topics. Favour the pattern that performs best on this channel: a familiar thing everyone knows,
    shrunk, flipped or compared in a surprising way ("Mount Everest is tiny.", "You've never seen the Sun.").
    Name the subject in the hook itself; avoid vague hooks like "this star". Mix sub-topics so the batch is varied.
+   Never reuse a hook skeleton already in the file (same sentence with only the numbers or bodies swapped):
+   YouTube's spam policy targets repetitive automated content, and `--validate` warns about it.
 3. For each topic write the entry exactly as CLAUDE.md describes:
    - `script`: 32-42 words. First sentence is the hook, at most 7 words. Then concrete numbers, talking to the
      viewer. The last sentence leads naturally back into the hook so the video loops.

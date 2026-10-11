@@ -1159,7 +1159,48 @@ def validate_topics(topics):
         steps = [q[4:] for q in (v or []) if is_sim(q)]
         if steps or t.get("sim"):
             errors += [f"{slug}: {e}" for e in sims.validate(t.get("sim"), steps)]
+    groups = {}
+    for t in topics:
+        if t.get("script"):
+            groups.setdefault(hook_pattern(t["script"]), []).append(t.get("slug", "?"))
+    for pat, slugs in groups.items():
+        if len(slugs) > 1:
+            warnings.append(f"aynı kanca kalıbı ({' '.join(pat)}): {', '.join(slugs)}. YouTube'un spam kuralı "
+                            "otomatik araçlarla tekrarlayan içerik basmayı yasaklıyor; kalıbı değiştir")
     return errors, warnings
+
+
+def hook_pattern(script):
+    """Kancanın iskeleti: sayılar N, gök cisimleri X olur. "Jupiter could swallow 1,300 Earths." ve
+    "Saturn could swallow 764 Earths." aynı iskelete düşer (x could swallow n x)."""
+    names = {clean(b["name"]) for b in sims.BODIES.values()}
+    first = script.split(".")[0].split("!")[0].split("?")[0]
+    out = []
+    for w in first.split():
+        c = clean(w)
+        if any(ch.isdigit() for ch in c):
+            out.append("n")
+        elif c in names or c.rstrip("s") in names:
+            out.append("x")
+        elif c:
+            out.append(c)
+    return tuple(out)
+
+
+def format_key(t):
+    """Videonun biçimi: sim şablonu (compare, lineup) ya da stok görüntü."""
+    return (t.get("sim") or {}).get("type", "stock")
+
+
+def spread_formats(topics):
+    """Aynı biçimdeki videolar art arda yayınlanmasın diye sırayı karıştırır (yerleri değişir, sayı aynı kalır)."""
+    rest, out = list(topics), []
+    while rest:
+        last = format_key(out[-1]) if out else None
+        pick = next((t for t in rest if format_key(t) != last), rest[0])
+        rest.remove(pick)
+        out.append(pick)
+    return out
 
 
 def settings_errors(cfg):
@@ -1236,6 +1277,7 @@ def write_plan(niche, topics, now=None):
         f = other / "program.json"
         if f.exists():
             taken |= {dt.datetime.fromisoformat(v) for v in json.loads(f.read_text(encoding="utf-8")).values()}
+    topics = spread_formats(topics)   # ör. iki "compare" videosu arka arkaya gelmesin
     for t, when in zip(topics, next_slots(taken, niche.cfg["upload_slots"], len(topics), now)):
         prog[t["slug"]] = when.isoformat(timespec="minutes")
     prog_f.write_text(json.dumps(dict(sorted(prog.items(), key=lambda kv: kv[1])), indent=2), encoding="utf-8")

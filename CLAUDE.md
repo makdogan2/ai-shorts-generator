@@ -12,6 +12,7 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
   `--preview [niche ...]` writes `output/<folder>/onizleme.jpg`, a frame-per-second sheet of the newest videos (also written after every render).
   After every render, new videos get the next free `upload_slots` in `output/<folder>/program.json`, and
   `output/<folder>/yukleme_plani.txt` lists each one's time, title, description and YouTube tags. `--plan` shows the calendar.
+  New videos are ordered so the same format (a sim template, or stock footage) is not published twice in a row.
 - `niches/<folder>/settings.json` — channel settings (voice, rate, lang, colors, scene timing, music, sfx).
 - `niches/<folder>/topics.json` — the scripts, one object per video.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
@@ -30,6 +31,10 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 - Only well-established, verifiable facts. Numbers must be correct. No myths, rumors, medical, legal or investment advice.
   When web search is available, check every number before writing it.
 - Plain text: no emojis, hashtags or quotes inside the script.
+- Vary the hook wording. YouTube's spam policy forbids using automated tools to flood the platform with repetitive
+  content, so two topics must not share a hook skeleton ("Jupiter could swallow 1,300 Earths." and "Saturn could swallow
+  764 Earths." are the same skeleton); `--validate` warns about it. Rotate shapes: shrink ("Jupiter is tiny next to the Sun."),
+  exact twist ("Exactly four Earths fit across Uranus."), flip ("The Moon is smaller than you think.").
 
 ## topics.json entry
 
