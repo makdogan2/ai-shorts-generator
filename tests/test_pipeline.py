@@ -383,3 +383,94 @@ def test_settings_errors_for_kokoro():
     assert P.settings_errors({**ok, "voice": "en-US-BrianNeural"})
     assert P.settings_errors({**P.DEFAULTS, "tts": "azure"})
 
+
+
+# ------------------------------------------------------------------ code-drawn scenes (sims.py)
+
+import sims  # noqa: E402
+
+LINEUP = {"type": "lineup", "bottom": "earth", "top": "moon",
+          "stack": ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"],
+          "near_km": 384400, "far_km": 405500}
+
+
+def test_lineup_numbers_match_the_script():
+    sim = sims.Lineup(LINEUP)
+    assert round(sim.stack_len) == 387941                 # NASA equatorial diameters
+    assert sim.gap_near < sim.stack_len < sim.gap_far      # too wide on average, fits at apogee
+    assert round(sim.gap_far, -3) == 397000
+
+
+def test_sim_validate_catches_bad_steps_and_bodies():
+    assert sims.validate(LINEUP, ["intro", "stack", "spare"]) == []
+    errs = sims.validate(dict(LINEUP, stack=["pluto"]), ["dance"])
+    assert any("dance" in e for e in errs) and any("pluto" in e for e in errs)
+    assert sims.validate(None, ["intro"])                  # sim: steps without a sim spec
+
+
+def test_plan_scenes_keeps_sim_scene_whole():
+    script = "Every planet fits here. " + "Stack them one by one in a very long line right now " * 2 + "."
+    words = even_words(script)
+    cfg = dict(P.DEFAULTS, scene_seconds=3.2)
+    scenes = P.plan_scenes(words, script, words[-1][1] + 0.3, cfg, ["sim:intro", "sim:stack"])
+    assert [q for _, q in scenes] == ["sim:intro", "sim:stack"]   # long sentence is not split
+
+
+def test_clips_for_scenes_passes_sims_through(monkeypatch):
+    def no_fetch(*a, **k):
+        raise AssertionError("no stock search for sim scenes")
+    monkeypatch.setattr(P, "fetch_clips", no_fetch)
+    assert P.clips_for_scenes([(1.5, "sim:intro"), (3, "sim:stack")], "x", []) == ["sim:intro", "sim:stack"]
+    monkeypatch.setattr(P, "fetch_clips", lambda q, fb, n=4: ["m1", "m2"][:n] if q == "moon" else [])
+    monkeypatch.setattr(P, "hook_score", lambda c: 0)
+    assert P.clips_for_scenes([(1.5, "sim:intro"), (3, "moon")], "x", []) == ["sim:intro", "m1"]
+
+
+def test_validate_checks_sim_topics():
+    t = dict(good_topic(), sim=LINEUP)
+    t["visuals"] = ["sim:intro"] + t["visuals"][1:]
+    assert P.validate_topics([t])[0] == []
+    t["visuals"] = ["sim:nope"] + t["visuals"][1:]
+    assert any("nope" in e for e in P.validate_topics([t])[0])
+
+
+def test_youtube_tags_skip_sim_steps():
+    t = dict(good_topic(), sim=LINEUP)
+    t["visuals"] = ["sim:intro"] + t["visuals"][1:]
+    assert "sim" not in P.youtube_tags(t, P.DEFAULTS)
+
+
+def test_lineup_planets_appear_when_named():
+    sim = sims.Lineup(LINEUP)
+    words = [(0.0, "Stack"), (0.5, "Jupiter,")]
+    st = sim.state("stack", 0.45, words)
+    assert st["pop"][3] == 0 and sim.state("stack", 0.7, words)["pop"][3] > 0.9
+
+
+@needs_ffmpeg
+def test_sim_hook_scene_is_bright_and_has_right_length(tmp_path):
+    out = tmp_path / "intro.mp4"
+    sims.render_step(LINEUP, "intro", 0.4, out, P.SEG_NORM)
+    assert abs(P.duration(out) - 0.4) < 0.1
+    assert P.first_frame_light(out) > P.DARK_HOOK
+
+
+COMPARE = {"type": "compare", "small": "earth", "big": "jupiter", "count": 1321}
+
+
+def test_compare_fits_eleven_earths_across_jupiter():
+    sim = sims.Compare(COMPARE)
+    assert sim.across == 11 and len(sim.fill_pts) > 50
+    assert sims.Compare(dict(COMPARE, big="sun")).across == 109
+
+
+def test_compare_validate():
+    assert sims.validate(COMPARE, list(sims.TEMPLATES["compare"])) == []
+    assert sims.validate(dict(COMPARE, small="jupiter", big="earth"), ["intro"])
+    assert any("count" in e for e in sims.validate(dict(COMPARE, count=None), ["fill"]))
+
+
+def test_all_sim_detects_fully_drawn_topics():
+    stock, sim = good_topic(), dict(good_topic(slug="sim-one"), sim=LINEUP)
+    sim["visuals"] = ["sim:intro"] * len(sim["visuals"])
+    assert not P.all_sim(stock) and P.all_sim(sim)

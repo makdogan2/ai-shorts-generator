@@ -49,5 +49,6 @@
     "science facts",
     "astronomy",
     "astro pocket"
-  ]
+  ],
+  "sim_only": true
 }

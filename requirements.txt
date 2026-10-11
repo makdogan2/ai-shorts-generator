@@ -3,3 +3,4 @@ requests
 pillow
 kokoro-onnx
 soundfile
+numpy

@@ -579,5 +579,74 @@
     ],
     "description": "The speed you never feel.",
     "tags": "#space #earth #physics #shorts"
+  },
+  {
+    "slug": "planets-between-earth-moon",
+    "title": "Every planet fits between Earth and the Moon",
+    "script": "Every planet fits inside this gap. Stack Mercury, Venus, Mars, Jupiter, Saturn, Uranus and Neptune. Together they're about 388,000 kilometers wide. Usually, that's too much. But when the Moon is farthest, the gap is 397,000. Room to spare, which is why",
+    "keywords": [
+      "planets",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:stack",
+      "sim:measure",
+      "sim:overflow",
+      "sim:stretch",
+      "sim:spare"
+    ],
+    "sim": {
+      "type": "lineup",
+      "bottom": "earth",
+      "top": "moon",
+      "stack": [
+        "mercury",
+        "venus",
+        "mars",
+        "jupiter",
+        "saturn",
+        "uranus",
+        "neptune"
+      ],
+      "near_km": 384400,
+      "far_km": 405500
+    },
+    "highlight": [
+      "planet",
+      "gap",
+      "Moon"
+    ],
+    "description": "Drawn to real scale: all seven planets, stacked in the space between us and the Moon.",
+    "tags": "#space #planets #moon #shorts"
+  },
+  {
+    "slug": "jupiter-swallows-1300-earths",
+    "title": "Jupiter could swallow 1,300 Earths",
+    "script": "Jupiter could swallow 1,300 Earths. That tiny dot is our whole planet. Fill Jupiter with Earths, and you'd need about 1,300. Line them across its middle, and 11 fit. Earth wouldn't even be a snack, because",
+    "keywords": [
+      "jupiter",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:fill",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "jupiter",
+      "count": 1321
+    },
+    "highlight": [
+      "Jupiter",
+      "Earths",
+      "Earth"
+    ],
+    "description": "Drawn to real scale: how many Earths it takes to fill the biggest planet.",
+    "tags": "#space #jupiter #planets #shorts"
   }
 ]

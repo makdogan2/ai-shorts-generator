@@ -11,6 +11,7 @@ Tek ortak kod, birden fazla niş (kanal):
 Özellikler:
   - Kelime zamanlamalı ücretsiz yapay zeka seslendirme
   - Her cümleye kendi stok videosu ("visuals"), yoksa anahtar kelimeye göre; bulunamazsa yedek aramalar
+  - "sim:<adım>" yazan sahneler stok video yerine kodla, gerçek ölçülerle çizilir (sims.py)
   - Kelime kelime, zıplayarak gelen altyazı; sayılar ve "highlight" kelimeleri vurgulu; üstte ilerleme çubuğu
   - Her videodan sonra otomatik kalite kontrolü (altyazı, ses seviyesi, süre); bozuksa yeniden üretir
   - Key yoksa: hareketli gradyan (+ istenirse kayan yıldız alanı) arka plan
@@ -41,6 +42,8 @@ from pathlib import Path
 import edge_tts
 import requests
 from PIL import Image, ImageDraw, ImageFont
+
+import sims
 
 HERE = Path(__file__).resolve().parent
 NICHES = HERE / "niches"
@@ -77,6 +80,7 @@ DEFAULTS = {
     "zoom": 0.08,                # her sahnede hafif yakınlaşma/uzaklaşma oranı (0: kapalı)
     "upload_slots": ["02:00", "22:00"],   # yükleme planındaki yayın saatleri (bilgisayarın yerel saati)
     "base_tags": [],             # her videonun YouTube etiketlerine eklenen kanal etiketleri
+    "sim_only": False,           # true: kanal sadece kodla çizilen (sim) videolar üretir; stok görüntülü konular atlanır
 }
 DARK_HOOK = 35                   # ilk karenin ortalama parlaklığı bunun altındaysa (0-255) kanca karanlık sayılır
 MOTION_CAP = 12                  # kanca puanında hareketin üst sınırı: çok çalkantılı klip ekstra puan almaz
@@ -721,15 +725,17 @@ def clips_for_scenes(scenes, keywords, fallback_queries):
     Aynı klip mümkün olduğunca tekrar edilmez. Hiç klip yoksa [] (gradyan)."""
     need = {}
     for _, q in scenes:
-        if q:
+        if q and not is_sim(q):
             need[q] = need.get(q, 0) + 1
-    if scenes and scenes[0][1]:
+    if scenes and scenes[0][1] and not is_sim(scenes[0][1]):
         need[scenes[0][1]] += HOOK_EXTRA   # kanca sahnesi için yedek adaylar: aralarından en iyisi seçilir
     pools = {q: fetch_clips(q, [], c) for q, c in need.items()}
     for q, c in need.items():
         if not pools[q]:
             print(f"  '{q}' için klip bulunamadı, konunun genel aramaları kullanılacak")
     missing = sum(max(0, c - len(pools[q])) for q, c in need.items()) + sum(1 for _, q in scenes if not q)
+    if not need and missing == 0:
+        return [q for _, q in scenes]   # hepsi kodla çizilen sahne: stok video aranmaz
     base = fetch_clips(keywords, fallback_queries, missing) if missing else []
     if scenes and len(pools.get(scenes[0][1], [])) > 1:
         # ilk sahne (kanca) için aydınlık ve hareketli klip; diğer adaylar sonraki sahnelerde kullanılır
@@ -739,6 +745,9 @@ def clips_for_scenes(scenes, keywords, fallback_queries):
         print(f"  kanca klibi: {Path(best).name} (puan {scores[best]:.1f}, {len(scores)} aday)")
     used, out, bi = set(), [], 0
     for _, q in scenes:
+        if is_sim(q):
+            out.append(q)
+            continue
         fresh = [c for c in pools.get(q, []) if c not in used]
         if fresh:
             c = fresh[0]
@@ -748,9 +757,9 @@ def clips_for_scenes(scenes, keywords, fallback_queries):
             c = (pools.get(q) or [None])[0]
         used.add(c)
         out.append(c)
-    avail = [c for c in out if c]
+    avail = [c for c in out if c and not is_sim(c)]
     if not avail:
-        return []
+        return out if any(out) else []   # klip yoksa sim olmayan sahneler gradyan olur (None)
     return [c or avail[i % len(avail)] for i, c in enumerate(out)]
 
 
@@ -765,6 +774,17 @@ def scene_durations(total, cfg):
     rest = total - first
     n = max(1, round(rest / cfg["scene_seconds"]))
     return [first] + [rest / n] * n
+
+
+def all_sim(t):
+    """Konunun bütün sahneleri kodla mı çiziliyor?"""
+    v = t.get("visuals") or []
+    return bool(v) and all(is_sim(q) for q in v)
+
+
+def is_sim(q):
+    """visuals girdisi kodla çizilen bir sahne mi ("sim:intro" gibi)?"""
+    return isinstance(q, str) and q.startswith("sim:")
 
 
 def sentence_spans(script):
@@ -796,12 +816,12 @@ def plan_scenes(words, script, total, cfg, visuals):
         if scenes and d < 0.7:          # çok kısa cümle ("Right?") önceki sahneye eklenir
             scenes[-1] = (scenes[-1][0] + d, scenes[-1][1])
             continue
-        parts = max(1, math.ceil(d / longest))
+        parts = 1 if is_sim(q) else max(1, math.ceil(d / longest))   # sim sahnesi tek parça: animasyon bölünmez
         scenes += [(d / parts, q)] * parts
     return scenes
 
 
-def render(niche, slug, total, durs, clips, words, highlights, music=None, music_start=0.0, hook=None):
+def render(niche, slug, total, durs, clips, words, highlights, music=None, music_start=0.0, hook=None, sim=None):
     out, cfg = niche.out, niche.cfg
     use_gradient = not clips
     n = len(durs)
@@ -836,11 +856,19 @@ def render(niche, slug, total, durs, clips, words, highlights, music=None, music
     for i in range(n):
         s = out / f"{slug}_seg{i}.mp4"
         seg = durs[i]
-        if use_gradient:
+        clip = None if use_gradient else clips[i % len(clips)]
+        if is_sim(clip):
+            try:
+                t0 = sum(durs[:i])   # sahnede söylenen kelimeler, sahne içi konumlarıyla (0-1)
+                said = [((a - t0) / seg, w) for a, _, w in words if t0 <= a < t0 + seg]
+                sims.render_step(sim, clip[4:], seg, s, SEG_NORM, said)
+            except Exception as e:
+                print(f"  uyarı: sahne {i + 1} çizilemedi ({e}), düz arka plan kullanıldı")
+                run(gradient_cmd(i, seg, s))
+        elif clip is None:
             run(gradient_cmd(i, seg, s))
         else:
             # aynı klip tekrar gelirse farklı bir yerinden başlar
-            clip = clips[i % len(clips)]
             seen[clip] = seen.get(clip, -1) + 1
             offset = seen[clip] * 4.0
             if offset:
@@ -998,6 +1026,9 @@ async def produce(niche):
         if (niche.out / f"{slug}.mp4").exists():
             print(f"atlandı (zaten var): {slug}")
             continue
+        if cfg["sim_only"] and not all_sim(t):
+            print(f"atlandı (kanal sadece simülasyon üretiyor, bu konu stok görüntülü): {slug}")
+            continue
         print(f"üretiliyor: {slug}")
         mp3 = niche.out / f"{slug}.mp3"
         voice = cfg["voice"]
@@ -1035,7 +1066,8 @@ async def produce(niche):
             clips = clips_for_scenes(scenes, t["keywords"], cfg["fallback_queries"])
             if not clips and attempt == 0:
                 print("  stok klip yok, gradyan arka plan kullanılıyor")
-            render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook)
+            render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook,
+                   t.get("sim"))
             start = hook[1] if hook else words[0][0]   # kanca sırasında ortada yazı yok
             problems = check_video(video, total, (start + 0.1, words[-1][1] - 0.1), hook=attempt == 0)
             if not problems:
@@ -1108,6 +1140,9 @@ def validate_topics(topics):
             warnings.append(f"{slug}: visuals yok (görüntüler genel anahtar kelimeden seçilir)")
         elif len(v) != len(spans):
             errors.append(f"{slug}: {len(spans)} cümle var ama {len(v)} visuals araması")
+        steps = [q[4:] for q in (v or []) if is_sim(q)]
+        if steps or t.get("sim"):
+            errors += [f"{slug}: {e}" for e in sims.validate(t.get("sim"), steps)]
     return errors, warnings
 
 
@@ -1130,6 +1165,11 @@ def validate_niches(niches):
     for n in niches:
         errors, warnings = validate_topics(n.topics)
         errors = settings_errors(n.cfg) + errors
+        if n.cfg["sim_only"]:
+            old = [t["slug"] for t in n.topics if t.get("slug") and not all_sim(t)
+                   and not (n.out / f"{t['slug']}.mp4").exists()]
+            if old:
+                warnings.append(f"sim_only açık; şu stok görüntülü konular üretilmeyecek: {', '.join(old)}")
         print(f"\n{n.name}: {len(n.topics)} konu, {len(errors)} hata, {len(warnings)} uyarı")
         for e in errors:
             print("  HATA   " + e)
@@ -1144,7 +1184,7 @@ def youtube_tags(t, cfg, limit=450):
     """YouTube'un 'Etiketler' kutusu için virgüllü liste: konu aramaları, vurgular, başlık ve kanal etiketleri."""
     kws = t.get("keywords") or []
     kws = [kws] if isinstance(kws, str) else list(kws)
-    cand = kws + list(t.get("visuals") or []) + [h.lower() for h in t.get("highlight", [])] + \
+    cand = kws + [v for v in t.get("visuals") or [] if not is_sim(v)] + [h.lower() for h in t.get("highlight", [])] + \
         [t["title"].lower()] + list(cfg.get("base_tags") or [])
     out, seen = [], set()
     for c in cand:

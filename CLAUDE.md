@@ -54,6 +54,38 @@ The first entry is the most important: it must show the hook's subject itself, b
 "sun surface", "mars planet"), because viewers decide to swipe in the first half second.
 `highlight`: 2-4 words copied exactly from the script; numbers are highlighted automatically.
 
+### Code-drawn scenes (`sim`)
+
+Instead of stock footage, a sentence can be drawn by `sims.py` at true scale. Write `"sim:<step>"` as that sentence's
+`visuals` entry and describe the scene in the topic's `sim` object. Numbers in the script must match what the sim
+measures (the engine computes them from real sizes), so check both. Steps are never split, and a body appears when its
+name is spoken, so name the bodies in the script.
+
+```json
+"visuals": ["sim:intro", "sim:stack", "sim:measure", "sim:overflow", "sim:stretch", "sim:spare"],
+"sim": {"type": "lineup", "bottom": "earth", "top": "moon",
+        "stack": ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"],
+        "near_km": 384400, "far_km": 405500}
+```
+
+`lineup` steps: `intro` (close on the bottom body, pull back to show the gap), `stack` (bodies pop in one by one),
+`measure` (ruler counts the stack's total size), `overflow` (zoom to the top; red where the stack overlaps at
+`near_km`), `stretch` (top body moves out to `far_km`; gap ruler turns green when everything fits), `spare` (zoom
+on the room left over).
+
+`compare` (`"sim": {"type": "compare", "small": "earth", "big": "jupiter", "count": 1321}`): the big body at true scale
+with the small one just below it. `count` is the volume ratio (big / small), shown by the fill counter. Steps:
+`intro` (slow pull-back on both; good hook frame), `point` (pulsing ring on the small body: "that tiny dot"),
+`spot` (zoom onto the small body), `back` (zoom back out), `fill` (small bodies fill the big one bottom-up while the
+counter runs to `count`), `across` (a row across the big body's diameter, counter to the whole number that fits),
+`outro` (slow push-in; use for the loop sentence). Use `spot` and `back` as a pair so the camera does not jump.
+
+Bodies: sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune (NASA equatorial diameters, IAU
+nominal Sun radius, in `sims.BODIES`). Never use NASA or other real images, logos or names of people in sims.
+
+A niche with `"sim_only": true` in settings.json (Astro Pocket) makes only fully code-drawn videos: every `visuals`
+entry must be `sim:<step>`, so pick topics that a template can show. Older stock-footage topics are skipped.
+
 ## settings.json keys
 
 `channel`, `tts` ("kokoro": open-source voice that runs on the PC, English only, model downloaded once to `models/`;
@@ -65,7 +97,8 @@ edge-tts: en-US-BrianNeural, en-GB-RyanNeural, tr-TR-AhmetNeural),
 `music` (true/false), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
 `caption_pop` (true), `progress_bar` ("top", "bottom" or false), `hook_title` (true: the hook sentence stays on screen
 as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off),
-`upload_slots` (["02:00", "22:00"]: publishing times for the upload plan), `base_tags` (channel tags added to every video).
+`upload_slots` (["02:00", "22:00"]: publishing times for the upload plan), `base_tags` (channel tags added to every video),
+`sim_only` (true: only code-drawn sim videos are made; topics with stock-footage visuals are skipped).
 
 ## Conventions
 
@@ -73,4 +106,4 @@ as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on e
 - Validate JSON after editing: `python -c "import json,sys; [json.load(open(f, encoding='utf-8')) for f in sys.argv[1:]]" <files>`.
 - To add a niche, use the `/new-niche` command. To add scripts to an existing niche, use `/more-topics <folder> [count]`.
 - After editing a topics.json, run `python pipeline.py --validate <folder>`.
-- After changing `pipeline.py`, run `python -m pytest tests` (render tests need FFmpeg). GitHub Actions runs them on every push.
+- After changing `pipeline.py` or `sims.py`, run `python -m pytest tests` (render tests need FFmpeg). GitHub Actions runs them on every push.

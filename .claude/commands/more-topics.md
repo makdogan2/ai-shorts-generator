@@ -13,6 +13,10 @@ Steps:
 1. Read `CLAUDE.md` (script rules and the topics.json entry format), then `niches/<folder>/settings.json` and the
    whole `niches/<folder>/topics.json`. Note every existing slug, title, hook (first sentence) and core fact, so
    nothing new repeats a topic or a fact the channel already covered.
+   If settings.json has `"sim_only": true`, every new topic must be fully code-drawn: read the "Code-drawn scenes"
+   section of CLAUDE.md and `TEMPLATES` / `BODIES` in `sims.py`, and only pick topics one of those templates can show
+   with its built-in bodies (for example a size comparison for `compare`, things fitting in a gap for `lineup`).
+   If a good idea needs a template or body that does not exist yet, list it at the end instead of writing it.
 2. Pick the new topics. Favour the pattern that performs best on this channel: a familiar thing everyone knows,
    shrunk, flipped or compared in a surprising way ("Mount Everest is tiny.", "You've never seen the Sun.").
    Name the subject in the hook itself; avoid vague hooks like "this star". Mix sub-topics so the batch is varied.
@@ -21,6 +25,8 @@ Steps:
      viewer. The last sentence leads naturally back into the hook so the video loops.
    - `visuals`: exactly one 1-3 word English stock-footage search per sentence, something literally visible
      while that sentence is spoken. The first one must show the hook's subject itself ("saturn planet", not "space").
+     In a `sim_only` niche, use one `sim:<step>` per sentence instead and add the topic's `sim` object; name the
+     bodies in the script, and make every number in the script match what the sim measures (`count`, sizes).
    - `keywords`, `highlight` (2-4 words copied exactly from the script), `title` (under 70 characters, close to
      the hook), `description` (one sentence), `tags` (3 topic hashtags plus #shorts), and a unique kebab-case `slug`.
    - Keep the language the niche uses (`lang` in settings.json).
