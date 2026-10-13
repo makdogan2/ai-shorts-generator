@@ -225,7 +225,7 @@ def surface(body):
         n = n + 0.10 * (warp - 0.5)
         land = n > np.quantile(n, 0.70)
         depth = np.clip((np.quantile(n, 0.70) - n) / 0.18, 0, 1)
-        ocean = _mix((0.14, 0.46, 0.76), (0.04, 0.18, 0.48), depth ** 0.6)       # sığ sular açık mavi
+        ocean = _mix((0.20, 0.54, 0.82), (0.07, 0.26, 0.58), depth ** 0.6)       # sığ sular açık mavi
         g = fbm(5, base=8, octaves=6)                      # nem: ormanla çölü ayırır
         al = np.abs(lat)
         wet = np.clip(0.55 + 0.35 * _z(g), 0, 1)
@@ -251,7 +251,7 @@ def surface(body):
         cs = _z(streaks(9, base=6, octaves=6, stretch=3))
         cf = _z(fbm(8, base=40, octaves=3))
         cl = 0.55 * c + 0.45 * cs + 0.25 * cf
-        clouds = np.clip((cl + 0.10) * 0.70, 0, 1) ** 1.3
+        clouds = np.clip((cl + 0.28) * 0.70, 0, 1) ** 1.3
         clouds = clouds * np.clip(0.8 + 0.25 * _z(fbm(10, base=90, octaves=2)), 0, 1)   # bulut kenarında ince doku
         img = img * (1 - 0.35 * np.roll(clouds, 6, axis=1)[..., None])          # bulut gölgesi
         img = _mix(img, (0.98, 0.99, 1.0), clouds)
