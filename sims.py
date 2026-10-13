@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 W, H, FPS = 1080, 1920, 30
 TW, TH = 2048, 1024            # doku çözünürlüğü (eşdikdörtgen harita)
-LIGHT = np.array([-0.45, 0.35, 0.82])
+LIGHT = np.array([-0.55, 0.36, 0.75])      # sol üstten, biraz yandan: kürelerde gölge sınırı görünür
 LIGHT = LIGHT / np.linalg.norm(LIGHT)
 YELLOW = (255, 214, 10)
 RED = (255, 84, 72)
@@ -146,67 +146,185 @@ def _craters(img, seed, count, rmin, rmax, depth=0.10):
         img[np.ix_(rr, cc % TW)] += delta[..., None].astype(np.float32)
 
 
+def streaks(seed, base=6, octaves=6, stretch=6):
+    """Doğu-batı yönünde uzamış gürültü: gaz devlerinin rüzgârla çekilmiş bulut şeritleri için."""
+    n = fbm(seed, base=base, octaves=octaves, h=TH, w=TW // stretch)
+    return _up(n, TH, TW)
+
+
+def _z(n):
+    """Gürültüyü ortalaması 0, yayılımı 1 olacak şekilde ölçekler (fbm değerleri 0,5 civarında toplanır;
+    böyle olmadan dalgalanma ve bulut eşikleri neredeyse hiç işlemez)."""
+    return (n - n.mean()) / (n.std() + 1e-6)
+
+
+def _bands(lat, stops):
+    """Enleme göre renk: stops = [(enlem derece, (r, g, b)), ...] küçükten büyüğe; aradakiler yumuşak geçer."""
+    deg = np.degrees(lat)
+    xs = [d for d, _ in stops]
+    return np.dstack([np.interp(deg, xs, [c[i] for _, c in stops]) for i in range(3)]).astype(np.float32)
+
+
+def relief(h, strength):
+    """Yükseklik haritasından ışığa göre gölge çarpanı (ışık sol üstten): kraterin ışığa bakan duvarı aydınlık,
+    öbür duvarı gölgeli olur. Doku dönerken ışık yönü çok az kaydığı için gölge dokuya işlenir."""
+    dx = (np.roll(h, -1, axis=1) - np.roll(h, 1, axis=1)) * 0.5
+    dy = (np.roll(h, 1, axis=0) - np.roll(h, -1, axis=0)) * 0.5        # yukarı = kuzey
+    dy[0], dy[-1] = 0, 0
+    return np.clip(1 + strength * (-LIGHT[0] * dx - LIGHT[1] * dy) / LIGHT[2], 0.35, 1.6)[..., None]
+
+
+def _crater_field(seed, count, rmin, rmax):
+    """Krater yükseklik haritası (piksel biriminde): kase biçimli taban, yuvarlak kenar, büyüklerde merkez tepe.
+    Derinlik yarıçapla orantılı (gerçek kraterlerde derinlik/çap ~0,1-0,2); küçük kraterler çok daha sık."""
+    rng = np.random.default_rng(seed)
+    h = np.zeros((TH, TW), np.float32)
+    for _ in range(count):
+        lat0 = math.asin(rng.uniform(-0.97, 0.97))
+        lon0 = rng.uniform(-math.pi, math.pi)
+        rad = rmin * (rmax / rmin) ** (rng.random() ** 2.2)
+        rpx = rad / math.pi * TH
+        rows = int(rad * 1.6 / math.pi * TH) + 2
+        cols = int(rad * 1.6 / max(math.cos(lat0), 0.15) / (2 * math.pi) * TW) + 2
+        r0 = int((0.5 - lat0 / math.pi) * TH)
+        c0 = int((lon0 + math.pi) / (2 * math.pi) * TW)
+        rr = np.arange(r0 - rows, r0 + rows + 1)
+        cc = np.arange(c0 - cols, c0 + cols + 1)
+        rr = rr[(rr >= 0) & (rr < TH)]
+        if not len(rr):
+            continue
+        lat = (0.5 - (rr + 0.5) / TH) * math.pi
+        lon = (cc + 0.5) / TW * 2 * math.pi - math.pi
+        dl = (lon[None, :] - lon0 + math.pi) % (2 * math.pi) - math.pi
+        d = np.sqrt((dl * math.cos(lat0)) ** 2 + (lat[:, None] - lat0) ** 2) / rad
+        depth = 0.22 * rpx
+        prof = np.where(d < 1, d * d - 1, 0) * depth + np.exp(-((d - 1) / 0.22) ** 2) * depth * 0.35
+        if rad > rmax * 0.45:
+            prof += np.exp(-(d / 0.16) ** 2) * depth * 0.35
+        h[np.ix_(rr, cc % TW)] += prof.astype(np.float32)
+    return h
+
+
 @functools.lru_cache(maxsize=None)
-def texture(body):
-    """Gök cisminin yüzey haritası (TH x TW x 3, 0-1). Tamamen kodla üretilir, telifsiz."""
+def surface(body):
+    """Gök cisminin yüzey haritası (TH x TW x 3, 0-1) ve parlama maskesi (okyanus; yoksa None).
+    Tamamen kodla üretilir, telifsiz."""
     lat = _lat()
+    spec = None
     if body == "sun":
-        n = fbm(61, base=32, octaves=4)
-        m = fbm(67, base=6, octaves=4)
-        img = _mix((1.0, 0.50, 0.08), (1.0, 0.86, 0.42), n * 1.6 - 0.35 + (m - 0.5) * 0.6)
+        gran = _z(fbm(61, base=360, octaves=2))                 # granülasyon: çok küçük, sık hücreler
+        m = _z(fbm(67, base=6, octaves=4))
+        img = _mix((1.0, 0.62, 0.16), (1.0, 0.90, 0.58), 0.55 + 0.10 * gran + 0.12 * m)
+        spots = fbm(71, base=14, octaves=3)
+        band = np.exp(-((np.abs(lat) - 0.30) / 0.12) ** 2)      # lekeler orta enlemlerde
+        img = _mix(img, (0.35, 0.12, 0.03), np.clip((_z(spots) - 2.6) * 3, 0, 1) * band)
     elif body == "earth":
-        n = fbm(3, base=6, octaves=7)
-        land = n > np.quantile(n, 0.70)
-        ocean = _mix((0.04, 0.17, 0.44), (0.09, 0.40, 0.70), (n - 0.3) / 0.4)
-        g = fbm(5, base=8, octaves=5)
-        ground = _mix((0.16, 0.36, 0.12), (0.62, 0.50, 0.30), (g - 0.35) / 0.35 + 0.3 * np.exp(-(lat / 0.4) ** 2))
-        img = np.where(land[..., None], ground, ocean)
-        img = _mix(img, (0.93, 0.95, 0.98), (np.abs(lat) - 1.22 - 0.25 * (g - 0.5)) * 12)
-        c = fbm(7, base=6, octaves=6)
-        img = _mix(img, (0.97, 0.98, 1.0), (c - 0.47) * 2.8)
-    elif body in ("moon", "mercury"):
-        n = fbm(11 if body == "moon" else 13, base=6, octaves=7)
-        tint = (0.66, 0.66, 0.68) if body == "moon" else (0.62, 0.58, 0.54)
-        img = np.asarray(tint, np.float32) * (0.82 + 0.4 * (n - 0.5))[..., None]
-        if body == "moon":
-            m = fbm(17, base=3, octaves=4)
-            img = _mix(img, (0.33, 0.33, 0.36), (m - np.quantile(m, 0.70)) * 9)
-        _craters(img, 23 if body == "moon" else 29, 260, 0.012, 0.05)
-    elif body == "venus":
-        n = fbm(31, base=5, octaves=6)
-        s = np.sin(lat * 7 + 4 * n)
-        img = _mix((0.96, 0.88, 0.66), (0.80, 0.64, 0.40), s * 0.5 + 0.5)
-    elif body == "mars":
-        n = fbm(37, base=5, octaves=7)
-        img = _mix((0.80, 0.42, 0.22), (0.44, 0.22, 0.12), (n - np.quantile(n, 0.62)) * 7)
-        img = np.where((np.abs(lat) > 1.30)[..., None], np.float32(0.95), img)
-    elif body in ("jupiter", "saturn"):
-        n = fbm(41 if body == "jupiter" else 43, base=8, octaves=6)
-        la = lat + 0.05 * (n - 0.5) * (1 if body == "jupiter" else 0.4)
-        if body == "jupiter":
-            s = np.sin(la * 9) + 0.45 * np.sin(la * 23 + 1.3)
-            img = _mix((0.95, 0.90, 0.80), (0.68, 0.45, 0.30), s * 0.45 + 0.4)
-            img = _mix(img, (0.85, 0.62, 0.42), np.abs(np.sin(la * 4.5)) * 0.35)
-            lon = _lon()
-            spot = (((lon - 0.4) / 0.22) ** 2 + ((lat + 0.39) / 0.075) ** 2)
-            img = _mix(img, (0.80, 0.36, 0.22), np.exp(-spot ** 2) * 1.2)
-        else:
-            s = np.sin(la * 8) + 0.3 * np.sin(la * 19)
-            img = _mix((0.95, 0.86, 0.64), (0.78, 0.65, 0.44), s * 0.3 + 0.45)
-        img = _mix(img, (0.45, 0.40, 0.38), (np.abs(lat) - 1.15) * 2)
-    elif body == "uranus":
-        n = fbm(47, base=4, octaves=4)
-        img = _mix((0.72, 0.91, 0.93), (0.60, 0.84, 0.88), np.sin(lat * 5) * 0.3 + 0.4 + (n - 0.5) * 0.2)
-    elif body == "neptune":
-        n = fbm(53, base=6, octaves=6)
-        la = lat + 0.04 * (n - 0.5)
-        img = _mix((0.30, 0.48, 0.92), (0.16, 0.28, 0.72), np.sin(la * 10) * 0.4 + 0.5)
         lon = _lon()
-        spot = (((lon + 0.6) / 0.18) ** 2 + ((lat + 0.35) / 0.07) ** 2)
-        img = _mix(img, (0.08, 0.12, 0.40), np.exp(-spot ** 2))
+        warp = fbm(2, base=4, octaves=4)
+        n = fbm(3, base=5, octaves=8)
+        n = n + 0.10 * (warp - 0.5)
+        land = n > np.quantile(n, 0.70)
+        depth = np.clip((np.quantile(n, 0.70) - n) / 0.18, 0, 1)
+        ocean = _mix((0.14, 0.46, 0.76), (0.04, 0.18, 0.48), depth ** 0.6)       # sığ sular açık mavi
+        g = fbm(5, base=8, octaves=6)
+        desert = np.exp(-((np.abs(lat) - 0.40) / 0.17) ** 2)                    # 20-30 derece çöl kuşağı
+        ground = _mix((0.12, 0.30, 0.10), (0.30, 0.42, 0.16), g * 1.4 - 0.2)
+        ground = _mix(ground, (0.72, 0.58, 0.36), desert * (g * 1.6 - 0.25))
+        ground = _mix(ground, (0.40, 0.36, 0.30), np.clip((n - np.quantile(n, 0.93)) * 25, 0, 1))  # dağlar
+        hgt = np.where(land, n, np.quantile(n, 0.70))
+        ground = ground * relief(hgt * 60, 1.0)
+        img = np.where(land[..., None], ground, ocean)
+        ice = (np.abs(lat) - 1.20 - 0.22 * (g - 0.5)) * 14
+        img = _mix(img, (0.93, 0.95, 0.98), ice)
+        spec = np.where(land, 0.0, 1.0).astype(np.float32) * np.clip(1 - ice, 0, 1)
+        c = _z(fbm(7, base=6, octaves=8))
+        cs = _z(streaks(9, base=6, octaves=6, stretch=3))
+        cf = _z(fbm(8, base=40, octaves=3))
+        cl = 0.55 * c + 0.45 * cs + 0.25 * cf
+        clouds = np.clip((cl + 0.10) * 0.70, 0, 1) ** 1.3
+        img = img * (1 - 0.35 * np.roll(clouds, 6, axis=1)[..., None])          # bulut gölgesi
+        img = _mix(img, (0.98, 0.99, 1.0), clouds)
+        spec = spec * (1 - clouds)
+    elif body in ("moon", "mercury"):
+        seed = 11 if body == "moon" else 13
+        n = fbm(seed, base=6, octaves=8)
+        tint = np.asarray((0.68, 0.67, 0.66) if body == "moon" else (0.60, 0.56, 0.52), np.float32)
+        img = tint * (0.86 + 0.32 * (n - 0.5))[..., None]
+        maria = np.zeros_like(n)
+        if body == "moon":    # denizler: koyu, düz bazalt ovaları; içlerinde krater az
+            m = fbm(17, base=3, octaves=5)
+            maria = np.clip((m - np.quantile(m, 0.66)) * 12, 0, 1)
+            img = _mix(img, (0.27, 0.27, 0.30), maria * 0.9)
+        h = _crater_field(23 if body == "moon" else 29, 900 if body == "moon" else 1300, 0.006, 0.09)
+        h = h * (1 - 0.75 * maria) + 6 * _z(fbm(seed + 2, base=24, octaves=4)) * (1 - 0.6 * maria)
+        img = img * relief(h, 0.9)
+    elif body == "venus":
+        cs = streaks(31, base=4, octaves=6, stretch=4)
+        n = fbm(33, base=5, octaves=6)
+        s = np.sin(np.abs(lat) * 6 + 5 * cs + 2 * n)          # Y biçimli, çekilmiş bulut kuşakları
+        img = _mix((0.97, 0.90, 0.70), (0.82, 0.66, 0.42), s * 0.4 + 0.45)
+        img = _mix(img, (0.99, 0.95, 0.82), np.exp(-(lat / 0.35) ** 2) * 0.3)
+    elif body == "mars":
+        n = fbm(37, base=5, octaves=8)
+        dark = fbm(39, base=3, octaves=5)
+        img = _mix((0.82, 0.45, 0.24), (0.62, 0.32, 0.17), n * 1.2 - 0.1)
+        img = _mix(img, (0.34, 0.19, 0.12), np.clip((dark - np.quantile(dark, 0.66)) * 10, 0, 1) * 0.85)
+        h = _crater_field(41, 260, 0.006, 0.06) * 0.6 + 3 * _z(fbm(43, base=16, octaves=5))
+        img = img * relief(h, 0.7)
+        cap = (np.abs(lat) - 1.28 - 0.08 * (n - 0.5)) * 18
+        img = _mix(img, (0.96, 0.95, 0.94), cap)
+    elif body == "jupiter":
+        sw = _z(streaks(41, base=6, octaves=7, stretch=3))      # bant kenarlarını dalgalandıran rüzgâr
+        ed = _z(fbm(42, base=28, octaves=4))                    # küçük girdaplar
+        fine = streaks(43, base=14, octaves=5, stretch=6)
+        la = lat + 0.030 * sw + 0.010 * ed
+        stops = [(-90, (0.55, 0.52, 0.50)), (-60, (0.62, 0.55, 0.48)), (-40, (0.80, 0.68, 0.54)),
+                 (-30, (0.70, 0.52, 0.38)), (-24, (0.93, 0.86, 0.74)), (-19, (0.66, 0.42, 0.28)),
+                 (-9, (0.62, 0.40, 0.27)), (-6, (0.95, 0.89, 0.78)), (5, (0.94, 0.86, 0.72)),
+                 (8, (0.60, 0.38, 0.25)), (17, (0.66, 0.44, 0.30)), (20, (0.93, 0.87, 0.76)),
+                 (28, (0.74, 0.58, 0.44)), (34, (0.88, 0.80, 0.68)), (45, (0.72, 0.62, 0.52)),
+                 (60, (0.62, 0.56, 0.50)), (90, (0.52, 0.50, 0.50))]
+        img = _bands(la, stops)
+        img = img * (1 + 0.07 * _z(fine))[..., None]
+        lon = _lon()
+        # Büyük Kırmızı Leke (yaklaşık 22 derece güney) ve etrafında açık renkli halka
+        d = np.sqrt(((lon - 0.4) / 0.20) ** 2 + ((lat + 0.39) / 0.07) ** 2)
+        swirl = 0.5 + 0.5 * np.sin(d * 9 - np.arctan2(lat + 0.39, lon - 0.4) * 2 + 3 * fine)
+        img = _mix(img, (0.96, 0.88, 0.78), np.exp(-((d - 1.25) / 0.25) ** 2) * 0.8)
+        img = _mix(img, (0.78, 0.34, 0.20) * (0.85 + 0.25 * swirl)[..., None], np.clip((1.05 - d) * 5, 0, 1))
+        for k in range(6):   # beyaz ovaller
+            lo0, la0 = -2.6 + k * 0.9, -0.62 + 0.02 * (k % 2)
+            dd = np.sqrt(((lon - lo0) / 0.05) ** 2 + ((lat - la0) / 0.025) ** 2)
+            img = _mix(img, (0.97, 0.95, 0.90), np.exp(-dd ** 2) * 0.9)
+    elif body == "saturn":
+        sw = streaks(45, base=5, octaves=6, stretch=5)
+        la = lat + 0.012 * _z(sw)
+        stops = [(-90, (0.62, 0.60, 0.55)), (-50, (0.80, 0.72, 0.56)), (-30, (0.90, 0.80, 0.60)),
+                 (-15, (0.86, 0.74, 0.54)), (0, (0.96, 0.88, 0.68)), (15, (0.88, 0.76, 0.55)),
+                 (30, (0.92, 0.83, 0.63)), (50, (0.78, 0.70, 0.55)), (75, (0.60, 0.62, 0.62)), (90, (0.55, 0.58, 0.60))]
+        img = _bands(la, stops) * (1 + 0.03 * _z(sw))[..., None]
+    elif body == "uranus":
+        sw = streaks(47, base=4, octaves=5, stretch=6)
+        img = _mix((0.70, 0.90, 0.93), (0.58, 0.82, 0.88), np.sin(lat * 6 + 0.6 * sw) * 0.25 + 0.45)
+        img = _mix(img, (0.80, 0.95, 0.96), np.clip((lat - 0.9) * 2, 0, 1) * 0.6)     # parlak kutup başlığı
+    elif body == "neptune":
+        sw = streaks(53, base=5, octaves=6, stretch=4)
+        la = lat + 0.035 * _z(sw)
+        img = _mix((0.30, 0.50, 0.94), (0.14, 0.26, 0.70), np.sin(la * 9) * 0.35 + 0.5)
+        img = img * (1 + 0.05 * _z(streaks(54, base=12, octaves=4, stretch=6)))[..., None]
+        lon = _lon()
+        spot = np.sqrt(((lon + 0.6) / 0.16) ** 2 + ((lat + 0.35) / 0.07) ** 2)
+        img = _mix(img, (0.08, 0.12, 0.40), np.clip((1.1 - spot) * 3, 0, 1))
+        cirrus = streaks(55, base=8, octaves=5, stretch=10)
+        img = _mix(img, (0.92, 0.96, 1.0), np.clip((_z(cirrus) - 1.0) * 1.5, 0, 1)
+                   * (np.exp(-((lat + 0.30) / 0.06) ** 2) + np.exp(-((lat - 0.50) / 0.08) ** 2)))
     else:
         raise ValueError(f"bilinmeyen gök cismi: {body}")
-    return np.clip(img, 0, 1).astype(np.float32)
+    return np.clip(img, 0, 1).astype(np.float32), spec
+
+
+def texture(body):
+    return surface(body)[0]
 
 
 # ---------------------------------------------------------------- çizim
@@ -230,24 +348,43 @@ def sphere_patch(body, cx, cy, r, rot=0.0):
     z = np.sqrt(np.clip(1 - r2, 0, 1))
     lat = np.arcsin(np.clip(-y, -1, 1))
     lon = np.arctan2(x, np.maximum(z, 1e-4)) + rot
-    tex = texture(body)
-    u = (((lon / (2 * math.pi) + 0.5) % 1) * TW).astype(np.int32) % TW
-    v = np.clip(((0.5 - lat / math.pi) * TH).astype(np.int32), 0, TH - 1)
-    col = tex[v, u]
-    diffuse = np.clip(x * LIGHT[0] - y * LIGHT[1] + z * LIGHT[2], 0, 1)
-    shade = 0.035 + 0.965 * diffuse ** 0.85
-    if star:   # yıldız kendi ışığını verir: gölge yok, kenara doğru hafif kararır
-        diffuse, shade = np.ones_like(z), 0.55 + 0.45 * z ** 0.5
+    tex, spec = surface(body)
+    # çift doğrusal örnekleme: gezegen dönerken doku pikselleri titremez
+    fu = ((lon / (2 * math.pi) + 0.5) % 1) * TW - 0.5
+    fv = np.clip((0.5 - lat / math.pi) * TH - 0.5, 0, TH - 1.001)
+    u0 = np.floor(fu).astype(np.int32)
+    v0 = np.floor(fv).astype(np.int32)
+    au, av = (fu - u0)[..., None], (fv - v0)[..., None]
+    u0 %= TW
+    u1 = (u0 + 1) % TW
+    v1 = np.minimum(v0 + 1, TH - 1)
+    col = (tex[v0, u0] * (1 - au) + tex[v0, u1] * au) * (1 - av) + (tex[v1, u0] * (1 - au) + tex[v1, u1] * au) * av
+    ndl = x * LIGHT[0] - y * LIGHT[1] + z * LIGHT[2]
+    diffuse = np.clip(ndl, 0, 1)
+    # yumuşak gölge sınırı + çok az ortam ışığı (gece tarafı tamamen siyah olmasın)
+    shade = 0.04 + 0.96 * np.clip((ndl + 0.12) / 1.12, 0, 1) ** 0.95
+    if star:   # yıldız kendi ışığını verir: kenara doğru kararır ve kızarır (limb darkening)
+        diffuse = np.ones_like(z)
+        mu = np.sqrt(z)
+        col = col * (0.64 + 0.36 * mu)[..., None] * np.dstack([np.ones_like(z), 0.86 + 0.14 * mu, 0.72 + 0.28 * mu])
+        shade = np.ones_like(z)
     if info.get("gas"):
-        shade *= 0.6 + 0.4 * z
+        shade *= 0.62 + 0.38 * z ** 0.6
     col = col * shade[..., None]
+    if spec is not None:   # okyanusta güneş parıltısı
+        hx, hy, hz = LIGHT[0], LIGHT[1], LIGHT[2] + 1.0
+        hn = math.sqrt(hx * hx + hy * hy + hz * hz)
+        ndh = np.clip((x * hx - y * hy + z * hz) / hn, 0, 1)
+        sm = (spec[v0, u0] * (1 - au[..., 0]) + spec[v0, u1] * au[..., 0])
+        glint = sm * ndh ** 160 * 0.38 * (diffuse > 0)
+        col = col + glint[..., None] * np.asarray((1.0, 0.95, 0.85), np.float32)
     if info.get("atmo") and not star:
-        rim = (1 - z) ** 3 * np.clip(diffuse + 0.25, 0, 1) * 0.55
+        rim = (1 - z) ** 3 * np.clip(diffuse + 0.2, 0, 1) * 0.6
         col = col + rim[..., None] * np.asarray(info["atmo"], np.float32)
     alpha = np.clip((1 - rr) * r + 0.5, 0, 1)
     if halo:
         lit = 1.0 if star else np.clip((x * LIGHT[0] - y * LIGHT[1]) / np.maximum(rr, 1e-4) * 0.6 + 0.55, 0.15, 1)
-        h = np.where(rr > 1, np.exp(-(rr - 1) / (halo * 0.35)) * (0.85 if star else 0.55) * lit, 0)
+        h = np.where(rr > 1, np.exp(-(rr - 1) / (halo * 0.35)) * (0.62 if star else 0.55) * lit, 0)
         glow = np.asarray(info["atmo"], np.float32)
         col = np.where((rr > 1)[..., None], glow, col)
         alpha = np.maximum(alpha, h * (rr > 1))
@@ -279,11 +416,17 @@ def ring_patch(cx, cy, r, front):
     for lo, hi, op in RING_BANDS:
         edge = np.clip((rr - lo) * r * 0.5, 0, 1) * np.clip((hi - rr) * r * 0.5, 0, 1)
         a += edge * op
-    a *= 0.85 + 0.15 * np.sin(rr * 90)
-    shade = 0.87 - 0.13 * np.clip(x / 2.3, -1, 1)             # ışık soldan
-    col = np.dstack([0.88 * shade, 0.80 * shade, 0.64 * shade]) * 255
+    # ince halkacıklar: birkaç frekansın üst üste binmesi, düzenli çizgi gibi durmasın
+    a *= 0.78 + 0.10 * np.sin(rr * 90) + 0.07 * np.sin(rr * 233 + 1.7) + 0.05 * np.sin(rr * 517 + 0.4)
+    shade = 0.90 - 0.14 * np.clip(x / 2.3, -1, 1)             # ışık soldan
+    inner = np.clip((rr - 1.24) / 0.3, 0, 1)                  # C halkası daha gri ve koyu
+    col = np.dstack([(0.62 + 0.28 * inner) * shade, (0.58 + 0.24 * inner) * shade,
+                     (0.52 + 0.14 * inner) * shade]) * 255
     if not front:   # arka yarı: gezegen diskinin içinde kalan kısım görünmez (ön yarı gezegenin üstüne çizilir)
         a = np.where(x * x + y * y < 1, 0, a)
+        # gezegenin halkaya düşen gölgesi (ışık sol önden geldiği için sağ arkada)
+        sh = np.clip(((x - 0.55) ** 2 + ((y + 0.02) / RING_TILT * 0.9) ** 2 - 1.0) * 6, 0, 1)
+        col = col * (0.30 + 0.70 * sh)[..., None]
     rgba = np.dstack([col, np.clip(a, 0, 1) * 255]).astype(np.uint8)
     return Image.fromarray(rgba, "RGBA"), x0, y0
 
@@ -523,12 +666,13 @@ class Lineup:
             text(layer, (x_txt, y), name, 34, fill=fill, anchor="lm" if side > 0 else "rm")
 
 
-@functools.lru_cache(maxsize=512)
-def token(body, r):
-    """Küçük, önceden çizilmiş gök cismi (aynı cisimden yüzlercesi çizilirken her seferinde hesaplanmasın)."""
+@functools.lru_cache(maxsize=4096)
+def token(body, r, rot=0.0):
+    """Küçük, önceden çizilmiş gök cismi (aynı cisimden yüzlercesi çizilirken her seferinde hesaplanmasın).
+    rot: dönüş; doldurmada her kopya farklı yüzünü gösterir, birebir aynı yapıştırma gibi durmaz."""
     size = int(math.ceil(r * 2.4)) + 4
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    p = sphere_patch(body, size / 2, size / 2, r, 0.0)
+    p = sphere_patch(body, size / 2, size / 2, r, rot)
     if p:
         img.alpha_composite(p[0], (p[1], p[2]))
     return img
@@ -630,7 +774,7 @@ class Compare:
                 p = min(1.0, shown - i)
                 if p <= 0:
                     break
-                self._token(img, bx + x * k, by + y * k, tr * ease_out_back(p), st["fill_a"])
+                self._token(img, bx + x * k, by + y * k, tr * ease_out_back(p), st["fill_a"], i)
         if st["row_a"] > 0 and st["row"] > 0:
             n = self.across
             r = self.rs * s
@@ -639,7 +783,7 @@ class Compare:
                 if p <= 0:
                     break
                 x = bx - br + r * (2 * i + 1)
-                self._token(img, x, by, r * ease_out_back(p), st["row_a"])
+                self._token(img, x, by, r * ease_out_back(p), st["row_a"], i + 3)
         sx, syy, sr = W / 2, sy(self.small_y), self.rs * s
         put(sphere_patch(self.small, sx, syy, sr, 0.0))
         if st["pulse"] > 0:
@@ -664,13 +808,15 @@ class Compare:
             if num:
                 text(layer, (W / 2, 250), num, 110, fill=YELLOW, stroke=8)
                 text(layer, (W / 2, 335), label, 40)
+                if kind == "fill":   # çizim düz bir kesit; sayı hacimden geliyor, izleyici yanılmasın
+                    text(layer, (W / 2, 385), "BY VOLUME", 28, fill=(255, 255, 255, 190))
         img.alpha_composite(layer)
         return img.convert("RGB")
 
-    def _token(self, img, x, y, r, alpha):
+    def _token(self, img, x, y, r, alpha, var=0):
         if r < 0.6 or not (-r < x < W + r and -r < y < H + r):
             return
-        spr = token(self.small, round(r, 1))
+        spr = token(self.small, round(r, 1), (var * 7 % 6) * 1.05)
         if alpha < 0.999:
             spr = spr.copy()
             spr.putalpha(spr.getchannel("A").point(lambda v: int(v * alpha)))
