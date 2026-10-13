@@ -779,6 +779,14 @@ def token(body, r, rot=0.0):
     rot: dönüş; doldurmada her kopya farklı yüzünü gösterir, birebir aynı yapıştırma gibi durmaz."""
     size = int(math.ceil(r * 2.4)) + 4
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    if r >= 3:   # temas gölgesi: ışığın tersine (sağ alta) düşen yumuşak koyu leke; kopyalar yüzeye otursun
+        sh = Image.new("L", (size, size), 0)
+        ox, oy = size / 2 + r * 0.12, size / 2 + r * 0.10
+        ImageDraw.Draw(sh).ellipse((ox - r * 1.02, oy - r * 1.02, ox + r * 1.02, oy + r * 1.02), fill=120)
+        sh = sh.filter(ImageFilter.GaussianBlur(max(1.0, r * 0.12)))
+        shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        shadow.putalpha(sh)
+        img.alpha_composite(shadow)
     p = sphere_patch(body, size / 2, size / 2, r, rot)
     if p:
         img.alpha_composite(p[0], (p[1], p[2]))
@@ -849,7 +857,7 @@ class Compare:
                       labels=span(u, 0.6, 1))
         elif step == "fill":
             f = span(u, 0.05, 0.85)
-            st.update(fill=f, fill_a=1.0, counter=("fill", ease(f)))
+            st.update(fill=f, fill_a=1.0, counter=("fill", ease(f), math.sin(math.pi * span(u, 0.85, 0.97))))
         elif step == "across":
             st.update(fill=1.0, fill_a=1 - span(u, 0, 0.25), row=span(u, 0.15, 0.8), row_a=1.0,
                       counter=("across", span(u, 0.15, 0.8)))
@@ -909,7 +917,8 @@ class Compare:
                 text(layer, (sx + sr + 40, syy), BODIES[self.small]["name"].upper(), 38,
                      fill=(255, 255, 255, a), anchor="lm")
         if st["counter"]:
-            kind, t = st["counter"]
+            kind, t = st["counter"][:2]
+            bump = st["counter"][2] if len(st["counter"]) > 2 else 0.0
             name = BODIES[self.small]["name"].upper()
             if kind == "fill" and self.count:
                 num, label = f"{round(self.count * t):,}", f"{name}S INSIDE"
@@ -920,7 +929,8 @@ class Compare:
             if num:
                 sc = _scrim()
                 layer.alpha_composite(sc, (int(W / 2 - sc.size[0] / 2), int(300 - sc.size[1] / 2)))
-                text(layer, (W / 2, 250), num, 110, fill=YELLOW, stroke=8)
+                pop = 1 + 0.14 * bump               # sayaç son rakama varınca kısa bir büyüyüp oturma
+                text(layer, (W / 2, 250), num, int(110 * pop), fill=YELLOW, stroke=8)
                 text(layer, (W / 2, 335), label, 40)
                 if kind == "fill":   # çizim düz bir kesit; sayı hacimden geliyor, izleyici yanılmasın
                     text(layer, (W / 2, 385), "BY VOLUME", 28, fill=(255, 255, 255, 190))
