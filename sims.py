@@ -381,6 +381,19 @@ def sphere_patch(body, cx, cy, r, rot=0.0):
         shade = np.ones_like(z)
     if info.get("gas"):
         shade *= 0.62 + 0.38 * z ** 0.6
+    if info.get("rings"):   # halkanın gezegene düşen gölgesi: yüzeyden ışığa giden ışın halka düzlemini nerede kesiyor?
+        ct = math.sqrt(1 - RING_TILT ** 2)
+        nx, ny, nz = 0.0, -ct, RING_TILT                       # halka düzleminin normali (ekran: y aşağı, z bize)
+        lx, ly, lz = LIGHT[0], -LIGHT[1], LIGHT[2]
+        ndl_r = ny * ly + nz * lz
+        if abs(ndl_r) > 1e-4:
+            t = -(ny * y + nz * z) / ndl_r
+            qx, qy, qz = x + t * lx, y + t * ly, z + t * lz
+            dist = np.sqrt(qx * qx + qy * qy + qz * qz)
+            op = np.zeros_like(dist)
+            for lo, hi, o in RING_BANDS:
+                op = np.where((dist >= lo) & (dist <= hi), o, op)
+            shade = shade * (1 - 0.7 * op * (t > 0) * (r2 < 1))
     col = col * shade[..., None]
     if spec is not None:   # okyanusta güneş parıltısı
         hx, hy, hz = LIGHT[0], LIGHT[1], LIGHT[2] + 1.0
@@ -410,6 +423,7 @@ RING_BANDS = [   # Satürn halkaları, gezegen yarıçapına oranla (iç, dış,
     (2.027, 2.269, 0.66),   # A halkası (arada Cassini boşluğu)
 ]
 RING_TILT = 0.22
+LABEL_GAP = 44      # küçük cisim etiketleri arasındaki en az dikey boşluk (px)
 
 
 def ring_patch(cx, cy, r, front):
@@ -516,7 +530,7 @@ def glow(img):
     small = rgb.resize((W // 4, H // 4), Image.BILINEAR)
     a = np.asarray(small, np.float32)
     lum = a.max(axis=2, keepdims=True)
-    bright = Image.fromarray((np.clip((lum - 150) / 105, 0, 1) * a * 0.55).astype(np.uint8))
+    bright = Image.fromarray((np.clip((lum - 205) / 50, 0, 1) * a * 0.6).astype(np.uint8))
     if not bright.getbbox():          # parlak yer yoksa iş yok
         return rgb
     halo = bright.filter(ImageFilter.GaussianBlur(10)).resize((W, H), Image.BILINEAR)
@@ -714,7 +728,7 @@ class Lineup:
         items = [(self.bottom, sy(0), self.rb * s, 1.0), (self.top, sy(st["moon"]), self.rt * s, 1.0)]
         items += [(b, sy(self.centers[k]), BODIES[b]["d"] / 2 * s * st["pop"][k], st["pop"][k])
                   for k, b in enumerate(self.stack)]
-        side = 1
+        small = []
         for b, y, r, p in items:
             if p < 0.3 or not -50 < y < H + 50:
                 continue
@@ -722,13 +736,41 @@ class Lineup:
             name = BODIES[b]["name"].upper()
             if r > 75:   # büyük gezegen: adı üstünde
                 text(layer, (W / 2, y), name, 40, fill=fill)
-                continue
-            side = -side
-            d = ImageDraw.Draw(layer)
-            x_edge = W / 2 + side * (r + 8)
-            x_txt = W / 2 + side * (r + 70)
-            d.line((x_edge, y, x_txt - side * 10, y), fill=(255, 255, 255, int(160 * a)), width=3)
-            text(layer, (x_txt, y), name, 34, fill=fill, anchor="lm" if side > 0 else "rm")
+            else:
+                small.append([y, b, r, fill, name])
+        # küçük cisimler: ekranda yukarıdan aşağı sırayla bir sola bir sağa; aynı taraftakiler üst üste binmesin
+        small.sort(key=lambda e: e[0])
+        d = ImageDraw.Draw(layer)
+        for side in (-1, 1):
+            group = [e for k, e in enumerate(small) if (1 if k % 2 else -1) == side]
+            ys = [e[0] for e in group]
+            for _ in range(20):                      # etiketleri aralarında en az GAP piksel kalana kadar it
+                moved = False
+                for k in range(1, len(ys)):
+                    over = LABEL_GAP - (ys[k] - ys[k - 1])
+                    if over > 0:
+                        ys[k - 1] -= over / 2
+                        ys[k] += over / 2
+                        moved = True
+                if not moved:
+                    break
+            for (y, b, r, fill, name), ly in zip(group, ys):
+                x_edge = W / 2 + side * (r + 8)
+                x_txt = W / 2 + side * (r + 70 + (30 if abs(ly - y) > 2 else 0))
+                d.line((x_edge, y, x_txt - side * 22, ly, x_txt - side * 10, ly),
+                       fill=(255, 255, 255, int(160 * a)), width=3, joint="curve")
+                text(layer, (x_txt, ly), name, 34, fill=fill, anchor="lm" if side > 0 else "rm")
+
+
+@functools.lru_cache(maxsize=1)
+def _scrim(w=620, h=300):
+    """Sayacın arkasındaki yumuşak koyu zemin: yıldızların ve gezegenin üstünde rakam net okunsun."""
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).ellipse((w * 0.12, h * 0.15, w * 0.88, h * 0.85), fill=150)
+    m = m.filter(ImageFilter.GaussianBlur(40))
+    img = Image.new("RGBA", (w, h), (3, 4, 14, 0))
+    img.putalpha(m)
+    return img
 
 
 @functools.lru_cache(maxsize=4096)
@@ -876,6 +918,8 @@ class Compare:
             else:
                 num = None
             if num:
+                sc = _scrim()
+                layer.alpha_composite(sc, (int(W / 2 - sc.size[0] / 2), int(300 - sc.size[1] / 2)))
                 text(layer, (W / 2, 250), num, 110, fill=YELLOW, stroke=8)
                 text(layer, (W / 2, 335), label, 40)
                 if kind == "fill":   # çizim düz bir kesit; sayı hacimden geliyor, izleyici yanılmasın
