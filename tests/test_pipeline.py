@@ -513,3 +513,11 @@ def test_spread_formats_avoids_back_to_back():
     assert sorted(order) == ["c1", "c2", "c3", "l1"]
     assert order[:3] == ["c1", "l1", "c2"]
 
+
+def test_compare_draws_saturn_rings():
+    img = sims.Compare({"type": "compare", "small": "earth", "big": "saturn", "count": 764}).frame("intro", 1.0)
+    big = sims.Compare.BIG_R
+    # halkanın gezegen diskinin dışında kalan kısmı (diskin sağında, merkezin biraz altında) arka plandan parlak
+    x, y = int(sims.W / 2 + big * 1.15), int(sims.Compare.BIG_Y + big * 0.32)
+    assert max(img.getpixel((x, y))) > 90
+

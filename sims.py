@@ -17,7 +17,7 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 W, H, FPS = 1080, 1920, 30
 TW, TH = 2048, 1024            # doku çözünürlüğü (eşdikdörtgen harita)
@@ -226,13 +226,23 @@ def surface(body):
         land = n > np.quantile(n, 0.70)
         depth = np.clip((np.quantile(n, 0.70) - n) / 0.18, 0, 1)
         ocean = _mix((0.14, 0.46, 0.76), (0.04, 0.18, 0.48), depth ** 0.6)       # sığ sular açık mavi
-        g = fbm(5, base=8, octaves=6)
-        desert = np.exp(-((np.abs(lat) - 0.40) / 0.17) ** 2)                    # 20-30 derece çöl kuşağı
-        ground = _mix((0.12, 0.30, 0.10), (0.30, 0.42, 0.16), g * 1.4 - 0.2)
-        ground = _mix(ground, (0.72, 0.58, 0.36), desert * (g * 1.6 - 0.25))
-        ground = _mix(ground, (0.40, 0.36, 0.30), np.clip((n - np.quantile(n, 0.93)) * 25, 0, 1))  # dağlar
-        hgt = np.where(land, n, np.quantile(n, 0.70))
-        ground = ground * relief(hgt * 60, 1.0)
+        g = fbm(5, base=8, octaves=6)                      # nem: ormanla çölü ayırır
+        al = np.abs(lat)
+        wet = np.clip(0.55 + 0.35 * _z(g), 0, 1)
+        forest = _mix((0.36, 0.38, 0.16), (0.06, 0.24, 0.07), wet)            # savan -> tropik orman
+        dry = _mix((0.80, 0.66, 0.44), (0.56, 0.48, 0.26), wet)               # kum çölü -> bozkır
+        temperate = _mix((0.40, 0.42, 0.22), (0.12, 0.32, 0.10), wet)
+        tundra = _mix((0.42, 0.42, 0.36), (0.20, 0.26, 0.16), wet)
+        ground = _mix(forest, dry, np.clip((al - 0.24) / 0.12, 0, 1) * np.clip(1.25 - 1.6 * wet, 0, 1))   # çöl yalnızca kuru yerde
+        ground = _mix(ground, temperate, np.clip((al - 0.62) / 0.12, 0, 1))
+        ground = _mix(ground, tundra, np.clip((al - 0.98) / 0.12, 0, 1))
+        rid = 1 - np.abs(2 * fbm(4, base=14, octaves=6) - 1)                  # sırt gürültüsü: sıradağlar
+        mount = np.clip((rid - 0.78) * 5, 0, 1) * np.clip((n - np.quantile(n, 0.72)) * 30, 0, 1)
+        ground = _mix(ground, (0.42, 0.37, 0.31), mount * 0.8)
+        ground = _mix(ground, (0.92, 0.93, 0.95), np.clip((mount - 0.6) * 3, 0, 1) * np.clip((al - 0.45) * 3, 0, 1))
+        smooth = fbm(3, base=5, octaves=5)                 # kıta şeklinin yumuşak hali: tümsek tümsek olmasın
+        hgt = np.where(land, smooth * 10 + mount * 9, np.quantile(smooth, 0.70) * 10)
+        ground = ground * relief(hgt, 0.8)
         img = np.where(land[..., None], ground, ocean)
         ice = (np.abs(lat) - 1.20 - 0.22 * (g - 0.5)) * 14
         img = _mix(img, (0.93, 0.95, 0.98), ice)
@@ -242,6 +252,7 @@ def surface(body):
         cf = _z(fbm(8, base=40, octaves=3))
         cl = 0.55 * c + 0.45 * cs + 0.25 * cf
         clouds = np.clip((cl + 0.10) * 0.70, 0, 1) ** 1.3
+        clouds = clouds * np.clip(0.8 + 0.25 * _z(fbm(10, base=90, octaves=2)), 0, 1)   # bulut kenarında ince doku
         img = img * (1 - 0.35 * np.roll(clouds, 6, axis=1)[..., None])          # bulut gölgesi
         img = _mix(img, (0.98, 0.99, 1.0), clouds)
         spec = spec * (1 - clouds)
@@ -385,6 +396,7 @@ def sphere_patch(body, cx, cy, r, rot=0.0):
     if halo:
         lit = 1.0 if star else np.clip((x * LIGHT[0] - y * LIGHT[1]) / np.maximum(rr, 1e-4) * 0.6 + 0.55, 0.15, 1)
         h = np.where(rr > 1, np.exp(-(rr - 1) / (halo * 0.35)) * (0.62 if star else 0.55) * lit, 0)
+        h = h * np.clip((1 + halo - rr) / (halo * 0.4), 0, 1)   # kutunun kenarına varmadan sıfıra iner (köşeli iz kalmasın)
         glow = np.asarray(info["atmo"], np.float32)
         col = np.where((rr > 1)[..., None], glow, col)
         alpha = np.maximum(alpha, h * (rr > 1))
@@ -431,32 +443,84 @@ def ring_patch(cx, cy, r, front):
     return Image.fromarray(rgba, "RGBA"), x0, y0
 
 
+BG_PAD = 1.12   # arka plan ekrandan biraz büyük üretilir: kamera yaklaşıp uzaklaşırken yıldızlar hafifçe kayar
+
+
 @functools.lru_cache(maxsize=4)
 def background(seed=1):
-    """Yıldızlı uzay: binlerce küçük yıldız, birkaç parlak yıldız ve çok hafif bir bulutsu."""
+    """Yıldızlı uzay (ekrandan BG_PAD kat büyük): parlaklığı ve rengi değişen binlerce yıldız, çapraz uzanan
+    soluk bir Samanyolu kuşağı ve çok hafif bulutsu."""
+    bw, bh = int(W * BG_PAD), int(H * BG_PAD)
     rng = np.random.default_rng(seed)
-    neb = fbm(seed + 100, base=3, octaves=5, h=H // 4, w=W // 4)
-    neb2 = fbm(seed + 200, base=2, octaves=4, h=H // 4, w=W // 4)
-    img = np.zeros((H // 4, W // 4, 3), np.float32)
+    neb = fbm(seed + 100, base=3, octaves=5, h=bh // 4, w=bw // 4)
+    neb2 = fbm(seed + 200, base=2, octaves=4, h=bh // 4, w=bw // 4)
+    dust = fbm(seed + 300, base=10, octaves=5, h=bh // 4, w=bw // 4)
+    yy, xx = np.mgrid[0:bh // 4, 0:bw // 4].astype(np.float32)
+    # Samanyolu: ekranı çapraz kesen geniş, yumuşak kuşak; içinde koyu toz damarları
+    band = np.exp(-(((xx * 0.55 - yy * 0.30) - bw / 4 * 0.12) / (bw / 4 * 0.22)) ** 2)
+    img = np.zeros((bh // 4, bw // 4, 3), np.float32)
     img += np.clip(neb - 0.45, 0, 1)[..., None] * np.array([0.30, 0.12, 0.45]) * 0.55
     img += np.clip(neb2 - 0.5, 0, 1)[..., None] * np.array([0.05, 0.20, 0.45]) * 0.55
+    img += (band * (0.55 + 0.9 * (dust - 0.5)) * (1 - 0.6 * np.clip((dust - 0.55) * 4, 0, 1)))[..., None] \
+        * np.array([0.11, 0.10, 0.13])
     img += np.array([0.012, 0.012, 0.03])
-    base = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).resize((W, H), Image.BICUBIC)
+    base = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).resize((bw, bh), Image.BICUBIC)
     d = ImageDraw.Draw(base)
-    for _ in range(1400):
-        x, y = rng.integers(0, W), rng.integers(0, H)
-        b = int(rng.integers(70, 230))
-        t = [(255, 255, 255), (200, 220, 255), (255, 236, 215)][rng.integers(0, 3)]
+    pal = [(255, 255, 255), (200, 220, 255), (255, 236, 215), (255, 214, 180)]
+    bandf = Image.fromarray((band * 255).astype(np.uint8)).resize((bw, bh))
+    for _ in range(3200):
+        x, y = int(rng.integers(0, bw)), int(rng.integers(0, bh))
+        if rng.random() > 0.35 + 0.65 * bandf.getpixel((x, y)) / 255:   # kuşakta yıldız daha sık
+            continue
+        b = int(255 * min(1.0, 0.25 + rng.pareto(3.0) * 0.35))           # çoğu sönük, birkaçı parlak
+        t = pal[int(rng.integers(0, len(pal)))]
         c = tuple(int(v * b / 255) for v in t)
-        if rng.random() < 0.85:
+        if b < 200:
             d.point((x, y), fill=c)
         else:
             d.ellipse((x - 1, y - 1, x + 1, y + 1), fill=c)
-    for _ in range(18):
-        x, y = rng.integers(0, W), rng.integers(0, H)
-        for rad, a in ((7, 40), (4, 90), (2, 255)):
+    for _ in range(22):
+        x, y = rng.integers(0, bw), rng.integers(0, bh)
+        for rad, a in ((8, 30), (4, 80), (2, 255)):
             d.ellipse((x - rad, y - rad, x + rad, y + rad), fill=(a, a, a))
     return base.convert("RGBA")
+
+
+@functools.lru_cache(maxsize=24)
+def _backdrop(m):
+    big = background()
+    cw, ch = W * BG_PAD / m, H * BG_PAD / m
+    x0, y0 = (big.size[0] - cw) / 2, (big.size[1] - ch) / 2
+    view = big.convert("RGB").resize((W, H), Image.BILINEAR, box=(x0, y0, x0 + cw, y0 + ch))
+    return ImageChops.multiply(view, _vignette()).convert("RGBA")   # kenar kararması arka plana işlenir
+
+
+def backdrop(zoom=1.0):
+    """Kameranın yakınlığına göre çok az büyüyen arka plan (uzak yıldızlarda derinlik hissi).
+    zoom: şablonun tam görünümüne göre kamera ölçeği."""
+    m = min(max(1.1 * max(zoom, 1e-6) ** 0.04, 1.0), 1.4)
+    return _backdrop(round(m, 3)).copy()
+
+
+@functools.lru_cache(maxsize=1)
+def _vignette():
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    r = np.sqrt(((xx - W / 2) / (W * 0.62)) ** 2 + ((yy - H / 2) / (H * 0.62)) ** 2)
+    v = 1 - 0.28 * np.clip(r - 0.55, 0, 1) ** 1.5
+    return Image.fromarray((v * 255).astype(np.uint8), "L").convert("RGB")
+
+
+def glow(img):
+    """Sahneye ışık parlaması: parlak yerler (Güneş, aydınlık bulutlar) hafifçe taşar. Yazılar bundan sonra çizilir."""
+    rgb = img.convert("RGB")
+    small = rgb.resize((W // 4, H // 4), Image.BILINEAR)
+    a = np.asarray(small, np.float32)
+    lum = a.max(axis=2, keepdims=True)
+    bright = Image.fromarray((np.clip((lum - 150) / 105, 0, 1) * a * 0.55).astype(np.uint8))
+    if not bright.getbbox():          # parlak yer yoksa iş yok
+        return rgb
+    halo = bright.filter(ImageFilter.GaussianBlur(10)).resize((W, H), Image.BILINEAR)
+    return ImageChops.add(rgb, halo)
 
 
 def text(layer, xy, s, size, fill=(255, 255, 255), anchor="mm", stroke=4):
@@ -568,7 +632,7 @@ class Lineup:
         st = self.state(step, u, words)
         s, cy = st["cam"]
         sy = lambda km: H / 2 - (km - cy) * s
-        img = background().copy()
+        img = backdrop(s / self.full[0])
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
         def put(patch):
@@ -641,8 +705,9 @@ class Lineup:
             pill(layer, (W / 2 + 200, (top_y + bot_y) / 2), f"{left:,} km", 52, GREEN, anchor="rm", alpha=a)
             text(layer, (W / 2 + 200, (top_y + bot_y) / 2 + 70), "TO SPARE", 40,
                  fill=(*GREEN, int(255 * a)), anchor="rm")
-        img.alpha_composite(layer)
-        return img.convert("RGB")
+        img = glow(img)                       # RGB döner; yazı katmanı üstüne maskeyle yapıştırılır
+        img.paste(layer, (0, 0), layer)
+        return img
 
     def labels(self, layer, st, sy, s):
         a = st["labels"]
@@ -756,7 +821,7 @@ class Compare:
         st = self.state(step, u, words)
         s, cy = st["cam"]
         sy = lambda km: H / 2 - (km - cy) * s
-        img = background().copy()
+        img = backdrop(s / self.full[0])
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
         def put(patch):
@@ -764,6 +829,9 @@ class Compare:
                 img.alpha_composite(patch[0], (patch[1], patch[2]))
 
         bx, by, br = W / 2, sy(0), self.rb * s
+        rings = BODIES[self.big].get("rings")
+        if rings:   # halkalı gezegen (Satürn): arka yarı gezegenin arkasında, ön yarı içindekilerin önünde
+            put(ring_patch(bx, by, br, front=False))
         put(sphere_patch(self.big, bx, by, br, 0.2))
         k = br / self.BIG_R                              # tam görünüme göre ölçek
         tr = self.tok_r * k
@@ -784,6 +852,8 @@ class Compare:
                     break
                 x = bx - br + r * (2 * i + 1)
                 self._token(img, x, by, r * ease_out_back(p), st["row_a"], i + 3)
+        if rings:
+            put(ring_patch(bx, by, br, front=True))
         sx, syy, sr = W / 2, sy(self.small_y), self.rs * s
         put(sphere_patch(self.small, sx, syy, sr, 0.0))
         if st["pulse"] > 0:
@@ -810,8 +880,9 @@ class Compare:
                 text(layer, (W / 2, 335), label, 40)
                 if kind == "fill":   # çizim düz bir kesit; sayı hacimden geliyor, izleyici yanılmasın
                     text(layer, (W / 2, 385), "BY VOLUME", 28, fill=(255, 255, 255, 190))
-        img.alpha_composite(layer)
-        return img.convert("RGB")
+        img = glow(img)                       # RGB döner; yazı katmanı üstüne maskeyle yapıştırılır
+        img.paste(layer, (0, 0), layer)
+        return img
 
     def _token(self, img, x, y, r, alpha, var=0):
         if r < 0.6 or not (-r < x < W + r and -r < y < H + r):
