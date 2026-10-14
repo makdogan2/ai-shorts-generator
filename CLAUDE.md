@@ -86,6 +86,17 @@ with the small one just below it. `count` is the volume ratio (big / small), sho
 counter runs to `count`), `across` (a row across the big body's diameter, counter to the whole number that fits),
 `outro` (slow push-in; use for the loop sentence). Use `spot` and `back` as a pair so the camera does not jump.
 
+`collapse` (`"sim": {"type": "collapse", "body": "sun", "mass_suns": 1, "compare": {"name": "Mount Everest", "km": 8.85}}`):
+the body is squeezed to the event horizon of its own mass (5.9 km per solar mass, across) while the camera zooms
+along ("ZOOM x..."). Steps: `intro`, `size` (diameter ruler), `crush`, `horizon` (flash, black hole with light
+bending), `compare` (a mountain silhouette at the same scale), `outro`.
+
+`giant` (`"sim": {"type": "giant", "holes": [{"name": "Sagittarius A*", "mass_suns": 4000000}, {"name": "M87*",
+"mass_suns": 6500000000}], "fit_orbit": "Mercury"}`): black holes drawn at true scale against the planets' orbits.
+Steps: `intro` (the biggest hole with Neptune's orbit inside: hook frame), `first` (the first hole where the Sun is),
+`orbit` (the orbit it fits inside pulses), `zoom` (pull back past every planet), `grow` (the big hole grows from the
+centre), `outro`. Masses: Event Horizon Telescope (Sgr A* about 4 million, M87* about 6.5 billion solar masses).
+
 Bodies: sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune (NASA equatorial diameters, IAU
 nominal Sun radius, in `sims.BODIES`). Never use NASA or other real images, logos or names of people in sims.
 
@@ -100,7 +111,8 @@ edge-tts: en-US-BrianNeural, en-GB-RyanNeural, tr-TR-AhmetNeural),
 `rate` ("+8%"), `lang` ("en" or "tr"), `scene_seconds` (3.2), `first_scene_seconds` (1.5),
 `fallback_queries` (3 generic English searches), `default_tags`, `highlight_color` ("#RRGGBB"),
 `starfield` (true only for space/night themes), `palettes` (2-3 lists of three dark "0xRRGGBB" colors),
-`music` (true/false), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
+`music` (true/false), `music_gen` (true: when the muzik folders are empty, every video gets an original
+track generated in code by `music.py`, so there is nothing to license and no Content ID claim), `music_rel_db` (-10), `music_fade_in` (0), `sfx` (true), `sfx_rel_db` (-8),
 `caption_pop` (true), `progress_bar` ("top", "bottom" or false), `hook_title` (true: the hook sentence stays on screen
 as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on every scene, 0 to turn off),
 `upload_slots` (["02:00", "22:00"]: publishing times for the upload plan), `base_tags` (channel tags added to every video),

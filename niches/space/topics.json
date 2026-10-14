@@ -764,5 +764,76 @@
     ],
     "description": "Drawn to real scale: how many Moons it takes to fill Earth.",
     "tags": "#space #moon #earth #shorts"
+  },
+  {
+    "slug": "crush-the-sun-black-hole",
+    "title": "What if the Sun became a black hole?",
+    "script": "Crush the Sun into a black hole. It's 1,391,400 kilometers wide. Squeeze it into a ball just 5.9 kilometers across. Now not even light can escape. It's smaller than Mount Everest is tall. Only in a simulation can you",
+    "keywords": [
+      "sun",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "sun",
+      "mass_suns": 1,
+      "compare": {
+        "name": "Mount Everest",
+        "km": 8.85
+      }
+    },
+    "highlight": [
+      "Sun",
+      "black",
+      "light"
+    ],
+    "description": "Drawn to real scale: the Sun squeezed down to its event horizon, about 6 km across.",
+    "tags": "#space #blackhole #sun #shorts"
+  },
+  {
+    "slug": "neptune-orbit-inside-black-hole",
+    "title": "Neptune's orbit fits inside this black hole",
+    "script": "Neptune's orbit fits inside this black hole. Our galaxy's black hole is 24 million kilometers wide. It would fit inside Mercury's orbit. Now zoom out past every planet. M87's giant is 38 billion kilometers across. Every planet's orbit vanishes inside, so",
+    "keywords": [
+      "black hole",
+      "planets"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:first",
+      "sim:orbit",
+      "sim:zoom",
+      "sim:grow",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "giant",
+      "holes": [
+        {
+          "name": "Sagittarius A*",
+          "mass_suns": 4000000
+        },
+        {
+          "name": "M87*",
+          "mass_suns": 6500000000
+        }
+      ],
+      "fit_orbit": "Mercury"
+    },
+    "highlight": [
+      "Neptune's",
+      "black",
+      "Mercury's"
+    ],
+    "description": "Drawn to real scale: Sagittarius A* and M87* next to the planets' orbits. Masses from the Event Horizon Telescope.",
+    "tags": "#space #blackhole #m87 #shorts"
   }
 ]

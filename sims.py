@@ -40,7 +40,9 @@ BODIES = {
     "uranus":  {"name": "Uranus",  "d": 51118, "gas": True, "atmo": (0.6, 0.95, 1.0)},
     "neptune": {"name": "Neptune", "d": 49528, "gas": True, "atmo": (0.4, 0.6, 1.0)},
 }
-TEMPLATES = {"lineup": ("intro", "stack", "measure", "overflow", "stretch", "spare"),
+TEMPLATES = {"collapse": ("intro", "size", "crush", "horizon", "compare", "outro"),
+             "giant": ("intro", "first", "orbit", "zoom", "grow", "outro"),
+             "lineup": ("intro", "stack", "measure", "overflow", "stretch", "spare"),
              "compare": ("intro", "point", "spot", "back", "fill", "across", "outro")}
 
 FONT_PATHS = [
@@ -725,15 +727,28 @@ class Lineup:
 
     def labels(self, layer, st, sy, s):
         a = st["labels"]
-        items = [(self.bottom, sy(0), self.rb * s, 1.0), (self.top, sy(st["moon"]), self.rt * s, 1.0)]
-        items += [(b, sy(self.centers[k]), BODIES[b]["d"] / 2 * s * st["pop"][k], st["pop"][k])
-                  for k, b in enumerate(self.stack)]
+        items = [(self.bottom, sy(0), self.rb * s, 1.0, None), (self.top, sy(st["moon"]), self.rt * s, 1.0, None)]
+        # aynı cisim art arda dizildiyse (ör. 30 Dünya) tek etiket: grubun ortasında "30 EARTHS"
+        k = 0
+        while k < len(self.stack):
+            j = k
+            while j + 1 < len(self.stack) and self.stack[j + 1] == self.stack[k]:
+                j += 1
+            b, n = self.stack[k], j - k + 1
+            shown = [m for m in range(k, j + 1) if st["pop"][m] > 0.3]
+            if shown:
+                mid = shown[len(shown) // 2]
+                y = sy(self.centers[mid])
+                r = BODIES[b]["d"] / 2 * s * st["pop"][mid]
+                label = f"{len(shown)} {BODIES[b]['name'].upper()}S" if n > 1 else None
+                items.append((b, y, r, 1.0, label))
+            k = j + 1
         small = []
-        for b, y, r, p in items:
+        for b, y, r, p, label in items:
             if p < 0.3 or not -50 < y < H + 50:
                 continue
             fill = (255, 255, 255, int(255 * a * min(1, p)))
-            name = BODIES[b]["name"].upper()
+            name = label or BODIES[b]["name"].upper()
             if r > 75:   # büyük gezegen: adı üstünde
                 text(layer, (W / 2, y), name, 40, fill=fill)
             else:
@@ -948,7 +963,270 @@ class Compare:
         img.alpha_composite(spr, (int(x - spr.size[0] / 2), int(y - spr.size[1] / 2)))
 
 
-SIMS = {"lineup": Lineup, "compare": Compare}
+# ---------------------------------------------------------------- kara delikler
+
+RS_KM = 2.953          # 1 Güneş kütlesinin Schwarzschild yarıçapı (km); yarıçap kütleyle doğru orantılı büyür
+ORBITS = [             # gezegen yörüngelerinin yarı büyük eksenleri (km), NASA gezegen bilgi sayfaları
+    ("Mercury", 57.9e6), ("Venus", 108.2e6), ("Earth", 149.6e6), ("Mars", 227.9e6),
+    ("Jupiter", 778.5e6), ("Saturn", 1432.0e6), ("Uranus", 2867.0e6), ("Neptune", 4515.0e6),
+]
+ORANGE = (255, 170, 70)
+
+
+def horizon_km(mass_suns):
+    """Olay ufkunun çapı (km)."""
+    return 2 * RS_KM * mass_suns
+
+
+def black_hole(img, cx, cy, r, disk=0.0, spin=0.0):
+    """img (RGBA) üzerine r piksel yarıçaplı kara delik: arkadaki yıldız ışığı bükülür (kütleçekimsel mercek),
+    ufkun hemen dışında ince parlak foton halkası, istenirse turuncu, dönen bir yığılma diski parıltısı.
+    Siyah disk olay ufkunun gerçek boyutu; ölçü etiketleri bu çapı gösterir."""
+    if r < 0.8:
+        return img
+    R = int(min(r * 6 + 40, 2600))
+    x0, x1 = max(0, int(cx - R)), min(W, int(cx + R))
+    y0, y1 = max(0, int(cy - R)), min(H, int(cy + R))
+    if x0 >= x1 or y0 >= y1:
+        return img
+    src = np.asarray(img, np.float32)
+    xs = np.arange(x0, x1, dtype=np.float32) + 0.5 - cx
+    ys = np.arange(y0, y1, dtype=np.float32) + 0.5 - cy
+    dx, dy = np.meshgrid(xs, ys)
+    d = np.sqrt(dx * dx + dy * dy) + 1e-3
+    re = r * 1.7                                         # Einstein yarıçapı: bu halkada ışık en çok bükülür
+    ds = d - re * re / d                                 # ışığın aslında geldiği yer (negatifse karşı taraftan)
+    fade = np.clip((R - d) / (R * 0.25), 0, 1)           # bölgenin kenarında bükülme sıfıra iner (dikiş olmasın)
+    k = (ds * fade + d * (1 - fade)) / d
+    sx = np.clip(cx + dx * k, 0, W - 1).astype(np.int32)
+    sy = np.clip(cy + dy * k, 0, H - 1).astype(np.int32)
+    out = src[sy, sx]
+    rel = d / r
+    # foton halkası ve ufka yakın parıltı
+    ring = np.exp(-((rel - 1.06) / 0.05) ** 2) * 1.0 + np.exp(-((rel - 1.0) / 0.35) ** 2) * 0.25 * (rel > 1)
+    out[..., :3] += ring[..., None] * np.array([255, 205, 150], np.float32) * 0.9
+    if disk > 0:   # yığılma diski: eğik halka, ışık tarafı daha parlak (Doppler etkisine benzer), yavaşça dönüyor
+        ang = np.arctan2(dy, dx)
+        yy = dy / 0.28
+        rd = np.sqrt(dx * dx + yy * yy) / r
+        band = np.clip((rd - 1.25) * 3, 0, 1) * np.clip((4.2 - rd) / 1.5, 0, 1)
+        swirl = 0.75 + 0.25 * np.sin(ang * 3 + rd * 4 - spin * 3)
+        bright = (0.65 + 0.35 * np.cos(ang - math.pi)) * band * swirl * disk
+        front = dy > 0                                   # ön yarı ufkun önünden geçer, arka yarı arkasında kalır
+        col = np.array([255, 150, 60], np.float32)
+        add = bright[..., None] * col * 1.1
+        hole = rel < 1.0
+        out[..., :3] = np.where((hole & ~front)[..., None], out[..., :3], out[..., :3] + add)
+        out[..., :3] = np.where((hole & front)[..., None], out[..., :3] + add, out[..., :3])
+    inside = np.clip((1.0 - rel) * r + 0.5, 0, 1)        # ufuk: kenarı yumuşatılmış siyah
+    if disk > 0:
+        inside = inside * (1 - (dy > 0) * np.clip(bright * 1.4, 0, 1))
+    out[..., :3] *= (1 - inside)[..., None]
+    patch = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGBA")
+    img.paste(patch, (x0, y0))
+    return img
+
+
+def km_label(km):
+    """Okunur uzunluk: 5.9 km, 1,391,400 km, 24 million km, 38 billion km."""
+    if km >= 1e9:
+        return f"{km / 1e9:.0f} billion km"
+    if km >= 1e7:
+        return f"{km / 1e6:.0f} million km"
+    if km >= 100:
+        return f"{km:,.0f} km"
+    return f"{km:.1f} km"
+
+
+class Collapse:
+    """Bir gök cismi (ör. Güneş) aynı kütleyle olay ufku boyutuna sıkışır. Kamera cisimle birlikte yaklaşır
+    (ekranda 'ZOOM x' yazar). Sonunda kara delik ve gerçek ölçekte bir karşılaştırma (ör. Everest'in boyu).
+    Adımlar: intro, size, crush, horizon, compare, outro"""
+
+    CY = 1040
+
+    def __init__(self, spec):
+        self.body = spec.get("body", "sun")
+        self.d0 = BODIES[self.body]["d"]
+        self.mass = float(spec.get("mass_suns", 1.0))
+        self.dh = horizon_km(self.mass)
+        cmp_ = spec.get("compare") or {}
+        self.cmp_name, self.cmp_km = cmp_.get("name"), cmp_.get("km")
+
+    def state(self, step, u):
+        st = {"d": self.d0, "rpx": 380.0, "zoom": 1.0, "ruler": 0.0, "hole": 0.0, "flash": 0.0, "cmp": 0.0,
+              "label": 1.0, "spin": u}
+        if step == "intro":
+            st.update(rpx=lerp(400, 380, ease(u)), label=span(u, 0.5, 0.9))
+        elif step == "size":
+            st.update(ruler=ease(span(u, 0.05, 0.5)))
+        elif step == "crush":
+            t = ease(span(u, 0.05, 0.92))
+            d = math.exp(lerp(math.log(self.d0), math.log(self.dh), t))
+            rpx = lerp(380, 160, t)
+            st.update(d=d, rpx=rpx, zoom=(self.d0 / d) * (rpx / 380), ruler=1.0, label=1 - span(u, 0, 0.2))
+        elif step == "horizon":
+            st.update(d=self.dh, rpx=160, zoom=(self.d0 / self.dh) * 160 / 380, ruler=1.0,
+                      hole=span(u, 0.0, 0.25), flash=max(0.0, 1 - u * 4), label=0.0)
+        elif step == "compare":
+            t = ease(span(u, 0.0, 0.5))
+            st.update(d=self.dh, rpx=lerp(160, 110, t), zoom=(self.d0 / self.dh) * lerp(160, 110, t) / 380,
+                      ruler=1 - t, hole=1.0, cmp=t, label=0.0)
+        elif step == "outro":
+            st.update(d=self.dh, rpx=lerp(110, 150, ease(u)), zoom=(self.d0 / self.dh) * lerp(110, 150, ease(u)) / 380,
+                      hole=1.0, cmp=1 - span(u, 0.0, 0.4), label=0.0)
+        else:
+            raise ValueError(f"collapse şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['collapse'])}")
+        return st
+
+    def frame(self, step, u, words=None):
+        st = self.state(step, u)
+        img = backdrop(st["zoom"] ** 0.5)
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        cx, cy, r = W / 2 - st["cmp"] * W * 0.20, self.CY, st["rpx"]   # karşılaştırmada kara delik sola kayar
+        if st["hole"] < 1:
+            # sıkıştıkça ısınan yıldız: rengi beyaza döner, parlaklığı artar
+            p = sphere_patch(self.body, cx, cy, r, u * 0.3)
+            if p:
+                heat = 1 - st["d"] / self.d0 if step == "crush" else (1.0 if st["hole"] > 0 else 0.0)
+                patch = p[0]
+                if heat > 0.01:
+                    a = np.asarray(patch, np.float32)
+                    a[..., :3] = a[..., :3] * (1 - 0.6 * heat) + np.array([235, 240, 255]) * 0.6 * heat
+                    patch = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+                if st["hole"] > 0:
+                    patch.putalpha(patch.getchannel("A").point(lambda v: int(v * (1 - st["hole"]))))
+                img.alpha_composite(patch, (p[1], p[2]))
+        if st["hole"] > 0:
+            black_hole(img, cx, cy, r * st["hole"] ** 0.5)
+        if st["flash"] > 0:
+            fl = Image.new("RGBA", (W, H), (255, 255, 255, int(200 * st["flash"])))
+            img.alpha_composite(fl)
+        if st["cmp"] > 0 and self.cmp_km:
+            # karşılaştırma: aynı ölçekte dağ silueti (yükseklik gerçek oran)
+            px_per_km = 2 * r / self.dh
+            hpx = self.cmp_km * px_per_km
+            bx = W * 0.70
+            base = cy + r
+            a = int(255 * st["cmp"])
+            d = ImageDraw.Draw(layer)
+            pts = [(bx - hpx * 0.55, base), (bx - hpx * 0.14, base - hpx * 0.72), (bx, base - hpx),
+                   (bx + hpx * 0.17, base - hpx * 0.7), (bx + hpx * 0.58, base)]
+            d.polygon(pts, fill=(120, 128, 150, a))
+            d.polygon([(bx - hpx * 0.14, base - hpx * 0.78), (bx, base - hpx), (bx + hpx * 0.17, base - hpx * 0.76),
+                       (bx, base - hpx * 0.84)], fill=(240, 244, 255, a))
+            ruler(layer, bx + hpx * 0.68, base, base - hpx, GREEN, st["cmp"])
+            pill(layer, (bx, base - hpx - 70), f"{self.cmp_km:.1f} km", 40, GREEN, anchor="mm", alpha=st["cmp"])
+            text(layer, (bx, base + 50), self.cmp_name.upper(), 34, fill=(255, 255, 255, a))
+            ruler(layer, cx - r - 40, cy + r, cy - r, YELLOW, st["cmp"])
+            pill(layer, (cx, cy - r - 70), km_label(self.dh), 40, YELLOW, alpha=st["cmp"])
+            text(layer, (cx, cy + r + 50), "BLACK HOLE", 34, fill=(255, 255, 255, a))
+        if st["ruler"] > 0:
+            g = st["ruler"]
+            d = ImageDraw.Draw(layer)
+            yb = cy + r + 70
+            c = (*YELLOW, int(255 * g))
+            d.line((cx - r, yb, cx + r, yb), fill=c, width=6)
+            for x in (cx - r, cx + r):
+                d.line((x, yb - 22, x, yb + 22), fill=c, width=6)
+            pill(layer, (cx, yb + 70), km_label(st["d"]), 46, YELLOW, alpha=g)
+        if st["zoom"] > 1.5:
+            text(layer, (W / 2, 330), f"ZOOM x{st['zoom']:,.0f}", 40, fill=(255, 255, 255, 200))
+        if st["label"] > 0.01:
+            text(layer, (cx, cy - r * 0.7), BODIES[self.body]["name"].upper(), 44,
+                 fill=(255, 255, 255, int(255 * st["label"])))
+        img = glow(img)
+        img.paste(layer, (0, 0), layer)
+        return img
+
+
+class Giant:
+    """Dev kara delikler güneş sisteminin yörüngeleriyle aynı ölçekte. holes: [{name, mass_suns}, ...] küçükten
+    büyüğe. Adımlar: intro (en büyüğü, içinde Neptün'ün yörüngesi: kanca karesi), first (ilk kara delik iç gezegen
+    yörüngeleriyle), orbit (içine sığdığı yörüngenin vurgusu), zoom (gezegenlerin yörüngeleri boyunca geri çekilme),
+    grow (büyük kara delik merkezden büyür), outro"""
+
+    def __init__(self, spec):
+        holes = spec.get("holes") or []
+        self.small, self.big = holes[0], holes[-1]
+        self.rs_small = horizon_km(self.small["mass_suns"]) / 2
+        self.rs_big = horizon_km(self.big["mass_suns"]) / 2
+        self.fit = spec.get("fit_orbit", "Mercury")
+        self.fit_km = dict(ORBITS)[self.fit]
+        self.nep = dict(ORBITS)["Neptune"]
+        self.s_inner = 360 / self.fit_km                  # iç görünüm: Merkür yörüngesi 360 px
+        self.s_nep = 380 / self.nep                       # Neptün yörüngesi 380 px
+        self.s_big = 430 / self.rs_big                    # büyük kara delik 430 px
+
+    def state(self, step, u):
+        st = {"s": self.s_big, "small": 0.0, "big": 1.0, "pulse": 0.0, "labels": 1.0, "pill": None}
+        if step == "intro":
+            st.update(s=self.s_big * lerp(1.06, 1.0, ease(u)))
+        elif step == "first":
+            st.update(s=self.s_inner, small=ease(span(u, 0.0, 0.3)), big=0.0,
+                      pill=(km_label(2 * self.rs_small), span(u, 0.3, 0.6), self.small["name"]))
+        elif step == "orbit":
+            st.update(s=self.s_inner, small=1.0, big=0.0, pulse=min(1.0, u * 4),
+                      pill=(km_label(2 * self.rs_small), 1.0, self.small["name"]))
+        elif step == "zoom":
+            t = ease(span(u, 0.0, 0.9))
+            st.update(s=math.exp(lerp(math.log(self.s_inner), math.log(self.s_nep), t)), small=1 - span(u, 0.6, 0.9), big=0.0)
+        elif step == "grow":
+            t = ease(span(u, 0.0, 0.85))
+            st.update(s=math.exp(lerp(math.log(self.s_nep), math.log(self.s_big), t)), big=t,
+                      pill=(km_label(2 * self.rs_big), span(u, 0.5, 0.8), self.big["name"]))
+        elif step == "outro":
+            st.update(s=self.s_big * lerp(1.0, 1.08, ease(u)), pill=(km_label(2 * self.rs_big), 1 - span(u, 0, 0.4), self.big["name"]))
+        else:
+            raise ValueError(f"giant şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['giant'])}")
+        return st
+
+    def frame(self, step, u, words=None):
+        st = self.state(step, u)
+        s = st["s"]
+        img = backdrop(s / self.s_nep)
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        cx, cy = W / 2, 1000
+        # yörüngeler: ekranda görünür boydakiler çizilir, adları sağda
+        big_view = step in ("intro", "outro") or (step == "grow" and u > 0.5)
+        last_label = -1e9
+        for name, a_km in ORBITS:
+            r = a_km * s
+            if big_view and name != "Neptune":
+                continue
+            if 14 < r < 1400:
+                hl = name == self.fit and st["pulse"] > 0
+                alpha = 150 if not hl else int(150 + 105 * (0.5 + 0.5 * math.sin(u * 14)))
+                col = (*((YELLOW if hl else (150, 170, 220))), alpha)
+                d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=col, width=5 if hl else 3)
+                big_view = step in ("intro", "outro") or (step == "grow" and u > 0.5)
+                show = (name == "Neptune") if big_view else (70 <= r < 520)
+                if show and st["labels"] > 0 and (r - last_label) >= 40:   # birbirine çok yakın etiketler binmesin
+                    last_label = r
+                    lbl = f"{name.upper()}'S ORBIT" if (hl or big_view) else name.upper()
+                    # etiket yörüngenin tepesinde, ortalı: hiçbir boyda ekrandan taşmaz
+                    text(layer, (cx, cy - r - 26), lbl, 30 if not hl else 36, fill=(255, 255, 255, 220))
+        # güneş (iç görünümde küçük parlak nokta) ya da kara delikler
+        if st["small"] > 0:
+            black_hole(img, cx, cy, self.rs_small * s * st["small"], disk=0.8, spin=u)
+        else:
+            sr = max(3.0, BODIES["sun"]["d"] / 2 * s)
+            if sr < 60:
+                d.ellipse((cx - sr, cy - sr, cx + sr, cy + sr), fill=(255, 220, 140, 255))
+        if st["big"] > 0:
+            black_hole(img, cx, cy, self.rs_big * s * st["big"], disk=1.0, spin=u)
+        if st["pill"]:
+            txt, a, name = st["pill"]
+            if a > 0.01:
+                pill(layer, (W / 2, 300), txt, 54, YELLOW, alpha=a)
+                text(layer, (W / 2, 380), name.upper(), 40, fill=(255, 255, 255, int(255 * a)))
+        img = glow(img)
+        img.paste(layer, (0, 0), layer)
+        return img
+
+
+SIMS = {"lineup": Lineup, "compare": Compare, "collapse": Collapse, "giant": Giant}
 
 
 def validate(spec, steps):
@@ -968,6 +1246,17 @@ def validate(spec, steps):
             errs.append("sim.small, sim.big'den küçük olmalı")
         if "fill" in steps and not isinstance(spec.get("count"), (int, float)):
             errs.append("fill adımı için sim.count (hacim oranı) sayı olmalı")
+    if kind == "collapse":
+        if spec.get("body", "sun") not in BODIES:
+            errs.append(f"sim.body '{spec.get('body')}' tanımlı bir gök cismi değil")
+        if not isinstance(spec.get("mass_suns", 1.0), (int, float)):
+            errs.append("sim.mass_suns sayı olmalı")
+    if kind == "giant":
+        holes = spec.get("holes") or []
+        if len(holes) < 2 or any(not isinstance(h.get("mass_suns"), (int, float)) or not h.get("name") for h in holes):
+            errs.append("sim.holes en az iki kara delik olmalı: [{name, mass_suns}, ...]")
+        if spec.get("fit_orbit", "Mercury") not in dict(ORBITS):
+            errs.append(f"sim.fit_orbit bir gezegen adı olmalı ({', '.join(n for n, _ in ORBITS)})")
     if kind == "lineup":
         for b in [spec.get("bottom", "earth"), spec.get("top", "moon")] + list(spec.get("stack") or []):
             if b not in BODIES:

@@ -521,3 +521,32 @@ def test_compare_draws_saturn_rings():
     x, y = int(sims.W / 2 + big * 1.15), int(sims.Compare.BIG_Y + big * 0.32)
     assert max(img.getpixel((x, y))) > 90
 
+
+# ------------------------------------------------------------------ black holes and generated music
+
+def test_horizon_sizes_match_known_values():
+    assert abs(sims.horizon_km(1) - 5.9) < 0.1                       # the Sun squeezed: about 6 km across
+    assert 23e6 < sims.horizon_km(4e6) < 24e6                        # Sagittarius A*: about 24 million km
+    assert 38e9 < sims.horizon_km(6.5e9) < 39e9                      # M87*: about 38 billion km
+    assert sims.horizon_km(4e6) / 2 < dict(sims.ORBITS)["Mercury"]   # Sgr A* fits inside Mercury's orbit
+    assert sims.horizon_km(6.5e9) / 2 > 4 * dict(sims.ORBITS)["Neptune"]
+
+
+def test_black_hole_templates_validate_and_draw():
+    c = {"type": "collapse", "body": "sun", "mass_suns": 1, "compare": {"name": "Mount Everest", "km": 8.85}}
+    g = {"type": "giant", "holes": [{"name": "Sagittarius A*", "mass_suns": 4e6}, {"name": "M87*", "mass_suns": 6.5e9}]}
+    assert sims.validate(c, list(sims.TEMPLATES["collapse"])) == []
+    assert sims.validate(g, list(sims.TEMPLATES["giant"])) == []
+    assert sims.validate(dict(g, holes=g["holes"][:1]), ["intro"])
+    img = sims.Collapse(c).frame("horizon", 1.0)
+    assert img.getpixel((sims.W // 2, sims.Collapse.CY)) == (0, 0, 0)  # the horizon itself is black
+    assert sum(img.getpixel((sims.W // 2 + 166, sims.Collapse.CY))) > 300  # bright photon ring just outside
+
+
+def test_generated_music_is_deterministic_and_loud_enough(tmp_path):
+    import music
+    a, b = music.make_track(tmp_path / "a.wav", 4, "slug-1"), music.make_track(tmp_path / "b.wav", 4, "slug-1")
+    assert a.read_bytes() == b.read_bytes()
+    assert music.make_track(tmp_path / "c.wav", 4, "slug-2").read_bytes() != a.read_bytes()
+    assert P.duration(a) == pytest.approx(4, abs=0.05)
+

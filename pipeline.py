@@ -69,6 +69,7 @@ DEFAULTS = {
     "starfield": False,
     "palettes": [["0x0f0c29", "0x302b63", "0x24243e"], ["0x141e30", "0x243b55", "0x0b0b13"]],
     "music": True,               # false: müzik eklenmez
+    "music_gen": True,           # muzik klasörü boşsa her videoya kodla üretilmiş özgün müzik
     "scene_seconds": 3.7,        # sahne (klip) değişim süresi
     "first_scene_seconds": 0,    # >0: ilk kesme bu saniyede (giriş cümlesi bitince)
     "music_rel_db": -13,
@@ -405,7 +406,14 @@ def pick_music(niche, t):
         print(f"  uyarı: müzik bulunamadı ({t['music']}), klasörden seçiliyor")
     tracks = niche.music_tracks()
     if not tracks:
-        return None, 0.0
+        if not niche.cfg["music_gen"]:
+            return None, 0.0
+        # klasörde parça yok: bu videoya özel, kodla üretilmiş özgün müzik (telif ya da Content ID riski yok)
+        import music
+        p = CACHE / "music" / f"{t['slug']}.wav"
+        if not p.exists():
+            music.make_track(p, 45, t["slug"])
+        return p, 0.0
     p = random.Random(t["slug"]).choice(tracks)
     return p, quiet_intro_end(p)
 
@@ -1034,8 +1042,9 @@ async def produce(niche):
     migrate_legacy_output(niche)
     niche.out.mkdir(parents=True, exist_ok=True)
     n_music = len(niche.music_tracks()) if cfg["music"] else 0
+    mus = f"{n_music} parça" if n_music else ("kodla üretiliyor" if cfg["music"] and cfg["music_gen"] else "yok")
     print(f"\n=== {cfg.get('channel', niche.name)} ({niche.name}) — {len(niche.topics)} konu, "
-          f"ses: {cfg['voice']}, müzik: {n_music} parça ===")
+          f"ses: {cfg['voice']}, müzik: {mus} ===")
     made, failed, fresh, fresh_topics = 0, [], [], []
     for t in niche.topics:
         slug = t["slug"]
