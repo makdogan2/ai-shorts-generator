@@ -89,7 +89,8 @@ counter runs to `count`), `across` (a row across the big body's diameter, counte
 `collapse` (`"sim": {"type": "collapse", "body": "sun", "mass_suns": 1, "compare": {"name": "Mount Everest", "km": 8.85}}`):
 the body is squeezed to the event horizon of its own mass (5.9 km per solar mass, across) while the camera zooms
 along ("ZOOM x..."). Steps: `intro`, `size` (diameter ruler), `crush`, `horizon` (flash, black hole with light
-bending), `compare` (a mountain silhouette at the same scale), `outro`.
+bending), `compare` (the `compare` object at the same scale: `"shape": "mountain"` (default, height),
+`"coin"` (diameter) or `"ruler"` (a school ruler, length)), `outro`.
 
 `giant` (`"sim": {"type": "giant", "holes": [{"name": "Sagittarius A*", "mass_suns": 4000000}, {"name": "M87*",
 "mass_suns": 6500000000}], "fit_orbit": "Mercury"}`): black holes drawn at true scale against the planets' orbits.

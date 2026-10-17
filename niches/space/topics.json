@@ -835,5 +835,165 @@
     ],
     "description": "Drawn to real scale: Sagittarius A* and M87* next to the planets' orbits. Masses from the Event Horizon Telescope.",
     "tags": "#space #blackhole #m87 #shorts"
+  },
+  {
+    "slug": "earth-fits-in-your-hand",
+    "title": "Earth could fit in your hand",
+    "script": "Earth could fit in your hand. It's 12,756 kilometers wide. Now crush all of it into a ball. At 1.8 centimeters, not even light escapes. That black hole is smaller than a coin. Every gram of Earth is still there, so",
+    "keywords": [
+      "earth",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "earth",
+      "mass_suns": 3.003e-06,
+      "compare": {
+        "name": "US quarter",
+        "km": 2.426e-05,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Earth",
+      "hand",
+      "light"
+    ],
+    "description": "Drawn to real scale: Earth squeezed down to its event horizon, about 1.8 cm across.",
+    "tags": "#space #blackhole #earth #shorts"
+  },
+  {
+    "slug": "sun-109-earths-wide",
+    "title": "The Sun is 109 Earths wide",
+    "script": "The Sun is 109 Earths wide. See that tiny dot under it? That's Earth, with everyone you know. Now look back at the Sun. Line Earths up across its middle. Count every single one, and",
+    "keywords": [
+      "sun",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "sun"
+    },
+    "highlight": [
+      "Sun",
+      "Earth",
+      "Earths"
+    ],
+    "description": "Drawn to real scale: Earths lined up across the Sun's diameter.",
+    "tags": "#space #sun #earth #shorts"
+  },
+  {
+    "slug": "moon-30-earths-away",
+    "title": "The Moon is 30 Earths away",
+    "script": "The Moon is 30 Earths away. Stack thirty of them in the gap. That's about 383,000 kilometers of planet. At the Moon's average distance, they don't fit. But when the Moon is farthest, they do. With nearly 15,000 kilometers to spare, because",
+    "keywords": [
+      "moon",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:stack",
+      "sim:measure",
+      "sim:overflow",
+      "sim:stretch",
+      "sim:spare"
+    ],
+    "sim": {
+      "type": "lineup",
+      "bottom": "earth",
+      "top": "moon",
+      "stack": [
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth",
+        "earth"
+      ],
+      "near_km": 384400,
+      "far_km": 405500
+    },
+    "highlight": [
+      "Moon",
+      "Earths",
+      "farthest"
+    ],
+    "description": "Drawn to real scale: 30 Earths stacked in the gap between us and the Moon. Distances: NASA Moon fact sheet.",
+    "tags": "#space #moon #earth #shorts"
+  },
+  {
+    "slug": "neptune-shrinks-to-a-ruler",
+    "title": "Neptune can shrink to 30 centimeters",
+    "script": "Neptune can shrink to 30 centimeters. It's 49,528 kilometers wide. Squeeze every bit of it into a ball. Now not even light can escape. That's the length of a school ruler. Yet it still weighs as much as Neptune, so",
+    "keywords": [
+      "neptune",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "neptune",
+      "mass_suns": 5.1503e-05,
+      "compare": {
+        "name": "School ruler",
+        "km": 0.0003,
+        "shape": "ruler"
+      }
+    },
+    "highlight": [
+      "Neptune",
+      "ruler",
+      "light"
+    ],
+    "description": "Drawn to real scale: Neptune squeezed down to its event horizon, about 30 cm across. Mass: NASA Neptune fact sheet.",
+    "tags": "#space #blackhole #neptune #shorts"
   }
 ]

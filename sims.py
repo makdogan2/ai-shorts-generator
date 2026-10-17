@@ -426,6 +426,7 @@ RING_BANDS = [   # Satürn halkaları, gezegen yarıçapına oranla (iç, dış,
 ]
 RING_TILT = 0.22
 LABEL_GAP = 44      # küçük cisim etiketleri arasındaki en az dikey boşluk (px)
+CAPTION_BAND = (800, 1120)   # altyazı şeridi (px, dikey): grup etiketleri buraya konmaz
 
 
 def ring_patch(cx, cy, r, front):
@@ -741,6 +742,14 @@ class Lineup:
                 y = sy(self.centers[mid])
                 r = BODIES[b]["d"] / 2 * s * st["pop"][mid]
                 label = f"{len(shown)} {BODIES[b]['name'].upper()}S" if n > 1 else None
+                if label and CAPTION_BAND[0] < y < CAPTION_BAND[1]:
+                    # grup etiketi ortadaki altyazı şeridine binmesin: grubun şeridin hemen üstünde ya da
+                    # altında kalan bir üyesini göster (hepsi aynı cisim, ok yine gruba bakar)
+                    lo, hi = sorted((sy(self.centers[shown[0]]), sy(self.centers[shown[-1]])))
+                    for cand in (CAPTION_BAND[0], CAPTION_BAND[1]):
+                        if lo <= cand <= hi:
+                            y = cand
+                            break
                 items.append((b, y, r, 1.0, label))
             k = j + 1
         small = []
@@ -1028,14 +1037,18 @@ def black_hole(img, cx, cy, r, disk=0.0, spin=0.0):
 
 
 def km_label(km):
-    """Okunur uzunluk: 5.9 km, 1,391,400 km, 24 million km, 38 billion km."""
+    """Okunur uzunluk: 1.8 cm, 5.6 m, 5.9 km, 1,391,400 km, 24 million km, 38 billion km."""
     if km >= 1e9:
         return f"{km / 1e9:.0f} billion km"
     if km >= 1e7:
         return f"{km / 1e6:.0f} million km"
     if km >= 100:
         return f"{km:,.0f} km"
-    return f"{km:.1f} km"
+    if km >= 1:
+        return f"{km:.1f} km"
+    if km >= 0.001:
+        return f"{km * 1000:.1f} m"
+    return f"{km * 1e5:.1f} cm"
 
 
 class Collapse:
@@ -1044,6 +1057,7 @@ class Collapse:
     Adımlar: intro, size, crush, horizon, compare, outro"""
 
     CY = 1040
+    CMP_DROP = 260       # karşılaştırma sahnesinde her şey bu kadar aşağı iner (altyazı şeridi ~880-1030 px)
 
     def __init__(self, spec):
         self.body = spec.get("body", "sun")
@@ -1052,29 +1066,35 @@ class Collapse:
         self.dh = horizon_km(self.mass)
         cmp_ = spec.get("compare") or {}
         self.cmp_name, self.cmp_km = cmp_.get("name"), cmp_.get("km")
+        self.cmp_shape = cmp_.get("shape", "mountain")   # "mountain" (yükseklik), "coin" (çap) ya da "ruler" (uzunluk)
 
     def state(self, step, u):
         st = {"d": self.d0, "rpx": 380.0, "zoom": 1.0, "ruler": 0.0, "hole": 0.0, "flash": 0.0, "cmp": 0.0,
-              "label": 1.0, "spin": u}
+              "drop": 0.0, "label": 1.0, "spin": u}
         if step == "intro":
-            st.update(rpx=lerp(400, 380, ease(u)), label=span(u, 0.5, 0.9))
+            # kanca karesi: yıldız kendi ışığıyla parlak; gezegenin gece yarısı karanlık, o yüzden daha yakından başlar
+            r0 = 400 if BODIES[self.body].get("star") else 520
+            # ad etiketi yok: kanca başlığı ekranda ve cismin adını zaten söylüyor (üst üste binmesin)
+            st.update(rpx=lerp(r0, 380, ease(u)), label=0.0)
         elif step == "size":
-            st.update(ruler=ease(span(u, 0.05, 0.5)))
+            st.update(ruler=ease(span(u, 0.05, 0.5)), label=span(u, 0.0, 0.3))
         elif step == "crush":
             t = ease(span(u, 0.05, 0.92))
             d = math.exp(lerp(math.log(self.d0), math.log(self.dh), t))
             rpx = lerp(380, 160, t)
-            st.update(d=d, rpx=rpx, zoom=(self.d0 / d) * (rpx / 380), ruler=1.0, label=1 - span(u, 0, 0.2))
+            st.update(d=d, rpx=rpx, zoom=(self.d0 / d) * (rpx / 380), ruler=1.0, label=1 - span(u, 0, 0.08))
         elif step == "horizon":
             st.update(d=self.dh, rpx=160, zoom=(self.d0 / self.dh) * 160 / 380, ruler=1.0,
                       hole=span(u, 0.0, 0.25), flash=max(0.0, 1 - u * 4), label=0.0)
         elif step == "compare":
             t = ease(span(u, 0.0, 0.5))
+            # önce kara delik yerine (sola, altyazının altına) iner, karşılaştırma ancak orada belirir
             st.update(d=self.dh, rpx=lerp(160, 110, t), zoom=(self.d0 / self.dh) * lerp(160, 110, t) / 380,
-                      ruler=1 - t, hole=1.0, cmp=t, label=0.0)
+                      ruler=1 - span(u, 0.0, 0.12), hole=1.0, cmp=ease(span(u, 0.3, 0.6)),
+                      drop=ease(span(u, 0.0, 0.4)), label=0.0)
         elif step == "outro":
             st.update(d=self.dh, rpx=lerp(110, 150, ease(u)), zoom=(self.d0 / self.dh) * lerp(110, 150, ease(u)) / 380,
-                      hole=1.0, cmp=1 - span(u, 0.0, 0.4), label=0.0)
+                      hole=1.0, cmp=1 - span(u, 0.0, 0.2), drop=1 - ease(span(u, 0.2, 0.65)), label=0.0)
         else:
             raise ValueError(f"collapse şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['collapse'])}")
         return st
@@ -1083,7 +1103,8 @@ class Collapse:
         st = self.state(step, u)
         img = backdrop(st["zoom"] ** 0.5)
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        cx, cy, r = W / 2 - st["cmp"] * W * 0.20, self.CY, st["rpx"]   # karşılaştırmada kara delik sola kayar
+        # karşılaştırmada kara delik sola ve altyazı şeridinin altına kayar (karşılaştırma altyazının altında kalmasın)
+        cx, cy, r = W / 2 - st["drop"] * W * 0.20, self.CY + self.CMP_DROP * st["drop"], st["rpx"]
         if st["hole"] < 1:
             # sıkıştıkça ısınan yıldız: rengi beyaza döner, parlaklığı artar
             p = sphere_patch(self.body, cx, cy, r, u * 0.3)
@@ -1110,16 +1131,35 @@ class Collapse:
             base = cy + r
             a = int(255 * st["cmp"])
             d = ImageDraw.Draw(layer)
-            pts = [(bx - hpx * 0.55, base), (bx - hpx * 0.14, base - hpx * 0.72), (bx, base - hpx),
-                   (bx + hpx * 0.17, base - hpx * 0.7), (bx + hpx * 0.58, base)]
-            d.polygon(pts, fill=(120, 128, 150, a))
-            d.polygon([(bx - hpx * 0.14, base - hpx * 0.78), (bx, base - hpx), (bx + hpx * 0.17, base - hpx * 0.76),
-                       (bx, base - hpx * 0.84)], fill=(240, 244, 255, a))
+            if self.cmp_shape == "coin":
+                # madeni para: kara deliğin yanında aynı ölçekte gümüş bir disk (çap gerçek oran)
+                ccy = base - hpx / 2
+                d.ellipse((bx - hpx / 2, ccy - hpx / 2, bx + hpx / 2, ccy + hpx / 2), fill=(176, 182, 196, a))
+                d.ellipse((bx - hpx * 0.42, ccy - hpx * 0.42, bx + hpx * 0.42, ccy + hpx * 0.42),
+                          outline=(225, 230, 240, a), width=max(2, int(hpx * 0.03)))
+                d.ellipse((bx - hpx * 0.30, ccy - hpx * 0.36, bx - hpx * 0.02, ccy - hpx * 0.10),
+                          fill=(215, 220, 232, int(a * 0.6)))
+            elif self.cmp_shape == "ruler":
+                # okul cetveli: dik duran ince tahta şerit (uzunluk gerçek oran), her cm'de çentik, 5 cm'de uzun çentik
+                rw = max(14.0, hpx * 0.12)
+                d.rectangle((bx - rw / 2, base - hpx, bx + rw / 2, base), fill=(214, 178, 112, a))
+                d.rectangle((bx - rw / 2, base - hpx, bx + rw / 2, base), outline=(150, 112, 58, a), width=2)
+                n = int(round(self.cmp_km * 1e5))   # santimetre
+                for k in range(1, n):
+                    y = base - hpx * k / n
+                    ln = rw * (0.55 if k % 5 == 0 else 0.3)
+                    d.line((bx - rw / 2, y, bx - rw / 2 + ln, y), fill=(70, 50, 25, a), width=2)
+            else:
+                pts = [(bx - hpx * 0.55, base), (bx - hpx * 0.14, base - hpx * 0.72), (bx, base - hpx),
+                       (bx + hpx * 0.17, base - hpx * 0.7), (bx + hpx * 0.58, base)]
+                d.polygon(pts, fill=(120, 128, 150, a))
+                d.polygon([(bx - hpx * 0.14, base - hpx * 0.78), (bx, base - hpx), (bx + hpx * 0.17, base - hpx * 0.76),
+                           (bx, base - hpx * 0.84)], fill=(240, 244, 255, a))
             ruler(layer, bx + hpx * 0.68, base, base - hpx, GREEN, st["cmp"])
-            pill(layer, (bx, base - hpx - 70), f"{self.cmp_km:.1f} km", 40, GREEN, anchor="mm", alpha=st["cmp"])
+            pill(layer, (bx, base - hpx - 70), km_label(self.cmp_km), 40, GREEN, anchor="mm", alpha=st["cmp"])
             text(layer, (bx, base + 50), self.cmp_name.upper(), 34, fill=(255, 255, 255, a))
             ruler(layer, cx - r - 40, cy + r, cy - r, YELLOW, st["cmp"])
-            pill(layer, (cx, cy - r - 70), km_label(self.dh), 40, YELLOW, alpha=st["cmp"])
+            pill(layer, (cx, cy - r - 70), f"{km_label(self.dh)} wide", 40, YELLOW, alpha=st["cmp"])
             text(layer, (cx, cy + r + 50), "BLACK HOLE", 34, fill=(255, 255, 255, a))
         if st["ruler"] > 0:
             g = st["ruler"]
@@ -1129,7 +1169,7 @@ class Collapse:
             d.line((cx - r, yb, cx + r, yb), fill=c, width=6)
             for x in (cx - r, cx + r):
                 d.line((x, yb - 22, x, yb + 22), fill=c, width=6)
-            pill(layer, (cx, yb + 70), km_label(st["d"]), 46, YELLOW, alpha=g)
+            pill(layer, (cx, yb + 70), f"{km_label(st['d'])} wide", 46, YELLOW, alpha=g)
         if st["zoom"] > 1.5:
             text(layer, (W / 2, 330), f"ZOOM x{st['zoom']:,.0f}", 40, fill=(255, 255, 255, 200))
         if st["label"] > 0.01:
@@ -1164,19 +1204,20 @@ class Giant:
             st.update(s=self.s_big * lerp(1.06, 1.0, ease(u)))
         elif step == "first":
             st.update(s=self.s_inner, small=ease(span(u, 0.0, 0.3)), big=0.0,
-                      pill=(km_label(2 * self.rs_small), span(u, 0.3, 0.6), self.small["name"]))
+                      pill=(f"{km_label(2 * self.rs_small)} wide", span(u, 0.3, 0.6), self.small["name"]))
         elif step == "orbit":
             st.update(s=self.s_inner, small=1.0, big=0.0, pulse=min(1.0, u * 4),
-                      pill=(km_label(2 * self.rs_small), 1.0, self.small["name"]))
+                      pill=(f"{km_label(2 * self.rs_small)} wide", 1.0, self.small["name"]))
         elif step == "zoom":
             t = ease(span(u, 0.0, 0.9))
             st.update(s=math.exp(lerp(math.log(self.s_inner), math.log(self.s_nep), t)), small=1 - span(u, 0.6, 0.9), big=0.0)
         elif step == "grow":
             t = ease(span(u, 0.0, 0.85))
             st.update(s=math.exp(lerp(math.log(self.s_nep), math.log(self.s_big), t)), big=t,
-                      pill=(km_label(2 * self.rs_big), span(u, 0.5, 0.8), self.big["name"]))
+                      pill=(f"{km_label(2 * self.rs_big)} wide", span(u, 0.5, 0.8), self.big["name"]))
         elif step == "outro":
-            st.update(s=self.s_big * lerp(1.0, 1.08, ease(u)), pill=(km_label(2 * self.rs_big), 1 - span(u, 0, 0.4), self.big["name"]))
+            st.update(s=self.s_big * lerp(1.0, 1.08, ease(u)),
+                      pill=(f"{km_label(2 * self.rs_big)} wide", 1 - span(u, 0, 0.4), self.big["name"]))
         else:
             raise ValueError(f"giant şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['giant'])}")
         return st
@@ -1251,6 +1292,8 @@ def validate(spec, steps):
             errs.append(f"sim.body '{spec.get('body')}' tanımlı bir gök cismi değil")
         if not isinstance(spec.get("mass_suns", 1.0), (int, float)):
             errs.append("sim.mass_suns sayı olmalı")
+        if (spec.get("compare") or {}).get("shape", "mountain") not in ("mountain", "coin", "ruler"):
+            errs.append("sim.compare.shape \"mountain\", \"coin\" ya da \"ruler\" olmalı")
     if kind == "giant":
         holes = spec.get("holes") or []
         if len(holes) < 2 or any(not isinstance(h.get("mass_suns"), (int, float)) or not h.get("name") for h in holes):

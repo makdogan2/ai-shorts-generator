@@ -25,3 +25,6 @@ youtube_token.json
 
 # Kokoro ses modeli (ilk kullanimda indirilir)
 models/
+
+# Kisisel Claude notu (repoya gitmesin)
+CLAUDE.local.md

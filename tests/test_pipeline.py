@@ -543,6 +543,21 @@ def test_black_hole_templates_validate_and_draw():
     assert sum(img.getpixel((sims.W // 2 + 166, sims.Collapse.CY))) > 300  # bright photon ring just outside
 
 
+def test_collapse_ruler_compare_is_drawn_to_scale():
+    # Neptune (GM ratio 6.8351 / 132712) squeezed: about 30.4 cm across, next to a 30 cm school ruler
+    c = {"type": "collapse", "body": "neptune", "mass_suns": 6.8351 / 132712,
+         "compare": {"name": "School ruler", "km": 3.0e-4, "shape": "ruler"}}
+    assert sims.validate(c, list(sims.TEMPLATES["collapse"])) == []
+    assert sims.validate(dict(c, compare=dict(c["compare"], shape="banana")), ["compare"])
+    assert sims.km_label(sims.horizon_km(c["mass_suns"])) == "30.4 cm"
+    img = sims.Collapse(c).frame("compare", 1.0)
+    # the hole sits left of centre (r = 110 px); the ruler stands to its right, same scale, so almost as tall
+    r, cy, bx = 110, sims.Collapse.CY + sims.Collapse.CMP_DROP, int(sims.W * 0.70)
+    wood = img.getpixel((bx + 5, cy + r - int(2 * r * 3.0e-4 / sims.horizon_km(c["mass_suns"]) / 2)))
+    assert wood[0] > 150 and wood[0] > wood[2]                      # wood-coloured strip
+    assert sum(img.getpixel((bx + 5, cy - r - 15))) < sum(wood)     # nothing above the ruler's top
+
+
 def test_generated_music_is_deterministic_and_loud_enough(tmp_path):
     import music
     a, b = music.make_track(tmp_path / "a.wav", 4, "slug-1"), music.make_track(tmp_path / "b.wav", 4, "slug-1")
@@ -550,3 +565,40 @@ def test_generated_music_is_deterministic_and_loud_enough(tmp_path):
     assert music.make_track(tmp_path / "c.wav", 4, "slug-2").read_bytes() != a.read_bytes()
     assert P.duration(a) == pytest.approx(4, abs=0.05)
 
+
+
+def test_lineup_group_label_stays_out_of_caption_band():
+    # 30 identical Earths share one "30 EARTHS" label; it must not sit behind the word-by-word captions
+    import numpy as np
+    spec = {"type": "lineup", "bottom": "earth", "top": "moon", "stack": ["earth"] * 30,
+            "near_km": 384400, "far_km": 405500}
+    lo, hi = sims.CAPTION_BAND
+    for step, u in (("stack", 1.0), ("measure", 1.0)):
+        a = np.asarray(sims.Lineup(spec).frame(step, u))
+        right = a[lo + 20:hi - 20, sims.W // 2 + 40:sims.W // 2 + 330].min(axis=2) > 200
+        assert not (right.sum(axis=1) > 20).any(), step   # stray stars are a few px; label text is a wide row
+
+
+def test_collapse_comparison_sits_below_the_captions():
+    import numpy as np
+    c = {"type": "collapse", "body": "neptune", "mass_suns": 6.8351 / 132712,
+         "compare": {"name": "School ruler", "km": 3.0e-4, "shape": "ruler"}}
+    sim = sims.Collapse(c)
+    assert sim.state("intro", 1.0)["label"] == 0          # no planet name under the hook title
+    a = np.asarray(sim.frame("compare", 1.0))
+    band = a[860:1060].max(axis=2)                        # captions: 140 px words centred on H/2, with pop
+    assert (band > 120).mean() < 0.002                    # caption band left clear: only stars
+
+
+def test_collapse_comparison_labels_never_cross_the_captions():
+    # the yellow/green size pills only show once the comparison has dropped below the caption band
+    import numpy as np
+    c = {"type": "collapse", "body": "neptune", "mass_suns": 6.8351 / 132712,
+         "compare": {"name": "School ruler", "km": 3.0e-4, "shape": "ruler"}}
+    sim = sims.Collapse(c)
+    for step in ("compare", "outro"):
+        for u in np.linspace(0, 1, 21):
+            a = np.asarray(sim.frame(step, float(u)))[860:1060].astype(int)
+            r, g, b = a[..., 0], a[..., 1], a[..., 2]
+            pill = ((r > 180) & (g > 150) & (b < 90)) | ((g > 180) & (r < 150) & (b < 170))
+            assert pill.sum() < 40, (step, round(float(u), 2), int(pill.sum()))
