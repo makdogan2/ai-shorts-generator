@@ -1784,9 +1784,17 @@ def render_step(spec, step, seconds, path, vf="format=yuv420p", words=None):
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     try:
         for i in range(n):
-            p.stdin.write(sim.frame(step, i / max(n - 1, 1), words).tobytes())
+            try:
+                p.stdin.write(sim.frame(step, i / max(n - 1, 1), words).tobytes())
+            except OSError:
+                # ffmpeg -t süresine ulaşınca girişi erken kapatabilir; Windows bunu Errno 22 diye
+                # bildirir. Gerçek bir hata mı, aşağıdaki çıkış kodu söyler.
+                break
     finally:
-        p.stdin.close()
+        try:
+            p.stdin.close()
+        except OSError:
+            pass
         p.wait()
     if p.returncode:
         raise RuntimeError(f"sim sahnesi yazılamadı: {step}")

@@ -707,3 +707,32 @@ def test_sky_compare_label_stays_out_of_the_caption_band():
         r, g, b = a[..., 0], a[..., 1], a[..., 2]
         yellow = (r > 200) & (g > 170) & (b < 80)            # the angle pill is yellow on dark
         assert yellow.sum() < 40
+
+
+def test_render_step_tolerates_ffmpeg_closing_input_early(monkeypatch, tmp_path):
+    # ffmpeg stops reading at -t and may close the pipe before the last frame; Windows reports Errno 22.
+    class Pipe:
+        def __init__(self):
+            self.n = 0
+
+        def write(self, b):
+            self.n += 1
+            if self.n > 2:
+                raise OSError(22, "Invalid argument")
+
+        def close(self):
+            raise OSError(22, "Invalid argument")
+
+    class Proc:
+        def __init__(self, rc):
+            self.stdin, self.returncode = Pipe(), rc
+
+        def wait(self):
+            return self.returncode
+
+    spec = {"type": "compare", "small": "earth", "big": "jupiter", "count": 1321}
+    monkeypatch.setattr(sims.subprocess, "Popen", lambda *a, **k: Proc(0))
+    sims.render_step(spec, "intro", 0.3, tmp_path / "a.mp4")   # ffmpeg finished fine: no error
+    monkeypatch.setattr(sims.subprocess, "Popen", lambda *a, **k: Proc(1))
+    with pytest.raises(RuntimeError):
+        sims.render_step(spec, "intro", 0.3, tmp_path / "b.mp4")   # ffmpeg really failed
