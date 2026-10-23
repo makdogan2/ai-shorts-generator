@@ -696,3 +696,14 @@ def test_map_country_widths_and_fit():
     assert sims.validate({"type": "map", "country": "atlantis"}, ["intro"])
     for step in sims.TEMPLATES["map"]:
         assert usa.frame(step, 0.5).size == (sims.W, sims.H)
+
+
+def test_sky_compare_label_stays_out_of_the_caption_band():
+    import numpy as np
+    for spec in (SKY, dict(SKY, body="earth", ground="moon", fov=6)):
+        sky = sims.Sky(spec)
+        top = int(sky.cy + sky.cr + 100)                     # below the pulsing ring round the small body
+        a = np.asarray(sky.frame("compare", 0.8))[max(top, sims.CAPTION_BAND[0]):sims.CAPTION_BAND[1]].astype(int)
+        r, g, b = a[..., 0], a[..., 1], a[..., 2]
+        yellow = (r > 200) & (g > 170) & (b < 80)            # the angle pill is yellow on dark
+        assert yellow.sum() < 40

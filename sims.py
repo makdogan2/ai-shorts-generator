@@ -1466,9 +1466,10 @@ class Sky:
             ring_pulse(layer, self.CX, self.cy, max(self.cr, 6), u, YELLOW, st["pulse"] * st["cmp"])
         if st["label"] > 0.01:
             a = st["label"]
-            yl = self.cy + max(self.cr, 6) + 90
-            text(layer, (self.CX, yl), self.cname.upper(), 40, fill=(255, 255, 255, int(255 * a)))
-            pill(layer, (self.CX, yl + 66), deg_label(self.cdeg), 40, YELLOW, alpha=a)
+            # kıyas cisminin adı ve açısı cismin ÜSTÜNDE: ortadaki altyazı şeridine (CAPTION_BAND) binmesin
+            yl = min(self.cy - max(self.cr, 6) - 210, CAPTION_BAND[0] - 120)
+            text(layer, (self.CX, yl), self.cname.upper(), 44, fill=(255, 255, 255, int(255 * a)))
+            pill(layer, (self.CX, yl + 70), deg_label(self.cdeg), 44, YELLOW, alpha=a)
         if step in ("grow", "measure", "outro"):
             deg = self.deg_m if step != "grow" else self.deg_m * r_main / self.r
             a = span(u, 0.5, 0.8) if step == "grow" else (1.0 if step == "measure" else 1 - span(u, 0, 0.3))
