@@ -1946,5 +1946,268 @@
     ],
     "description": "Drawn to real scale: Saturn next to Jupiter. Masses: NASA planetary fact sheet; mass-radius: Seager et al. 2007.",
     "tags": "#space #jupiter #saturn #shorts"
+  },
+  {
+    "slug": "swap-the-moon-for-jupiter",
+    "title": "What if Jupiter replaced our Moon?",
+    "script": "Swap the Moon for Jupiter. That tiny disk is our real Moon, half a degree wide. Now put Jupiter at the same distance. It would span 21 degrees, 41 times wider than the Moon. Luckily for us, nobody can actually",
+    "keywords": [
+      "jupiter",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:compare",
+      "sim:grow",
+      "sim:measure",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "sky",
+      "body": "jupiter",
+      "distance_km": 384400,
+      "ground": "city",
+      "fov": 40,
+      "compare": {
+        "body": "moon",
+        "distance_km": 384400,
+        "name": "Our Moon",
+        "than": "our Moon"
+      }
+    },
+    "highlight": [
+      "Jupiter",
+      "Moon",
+      "degrees"
+    ],
+    "description": "Drawn to real scale: Jupiter at the Moon's distance, 21 degrees across. Sizes and distance: NASA fact sheets.",
+    "tags": "#space #jupiter #moon #shorts"
+  },
+  {
+    "slug": "saturns-rings-across-our-sky",
+    "title": "Saturn's rings would cross our whole sky",
+    "script": "Saturn's rings would cross our sky. That small disk is our Moon today. Now move Saturn to the Moon's distance. Its rings would stretch 39 degrees, about 76 Moons across. You'd see them edge to edge from your window, because",
+    "keywords": [
+      "saturn",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:compare",
+      "sim:grow",
+      "sim:measure",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "sky",
+      "body": "saturn",
+      "distance_km": 384400,
+      "ground": "city",
+      "fov": 40,
+      "measure": "rings",
+      "compare": {
+        "body": "moon",
+        "distance_km": 384400,
+        "name": "Our Moon",
+        "than": "our Moon"
+      }
+    },
+    "highlight": [
+      "Saturn's",
+      "rings",
+      "Moons"
+    ],
+    "description": "Drawn to real scale: Saturn at the Moon's distance; the A ring's outer edge spans 39 degrees. Ring size: NASA Saturnian rings fact sheet.",
+    "tags": "#space #saturn #moon #shorts"
+  },
+  {
+    "slug": "earth-from-the-moon-looks-huge",
+    "title": "From the Moon, Earth looks huge",
+    "script": "From the Moon, Earth looks huge. Here's the Moon in our sky, half a degree wide. Now stand on the Moon and look back. Earth spans almost two degrees, nearly four times wider. And it never sets, it just hangs there, so",
+    "keywords": [
+      "earth",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:compare",
+      "sim:grow",
+      "sim:measure",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "sky",
+      "body": "earth",
+      "distance_km": 384400,
+      "ground": "moon",
+      "fov": 6,
+      "compare": {
+        "body": "moon",
+        "distance_km": 384400,
+        "name": "The Moon from Earth",
+        "than": "the Moon from Earth"
+      }
+    },
+    "highlight": [
+      "Earth",
+      "Moon",
+      "sets"
+    ],
+    "description": "Drawn to real scale: Earth in the lunar sky, 1.9 degrees across. Sizes: NASA fact sheets; Earth never sets: NASA APOD.",
+    "tags": "#space #earth #moon #shorts"
+  },
+  {
+    "slug": "on-mercury-the-sun-is-enormous",
+    "title": "On Mercury, the Sun is enormous",
+    "script": "On Mercury, the Sun is enormous. This is the Sun from Earth. Now walk on Mercury when it swings closest. The Sun grows to 1.7 degrees, over three times wider. And it's up to seven times brighter there, which is why",
+    "keywords": [
+      "mercury",
+      "sun"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:compare",
+      "sim:grow",
+      "sim:measure",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "sky",
+      "body": "sun",
+      "distance_km": 46000000,
+      "ground": "mercury",
+      "fov": 6,
+      "compare": {
+        "body": "sun",
+        "distance_km": 149600000,
+        "name": "The Sun from Earth",
+        "than": "from Earth"
+      }
+    },
+    "highlight": [
+      "Mercury",
+      "Sun",
+      "brighter"
+    ],
+    "description": "Drawn to real scale: the Sun from Mercury at perihelion, 1.7 degrees across. Distances and brightness: NASA Mercury facts.",
+    "tags": "#space #mercury #sun #shorts"
+  },
+  {
+    "slug": "the-moons-orbit-fits-inside-the-sun",
+    "title": "The Moon's whole orbit fits inside the Sun",
+    "script": "The Moon's orbit fits inside the Sun. That ring is the Moon's path, 768,800 kilometers across. Now drop the Sun on top, centered on Earth. It's 1,391,400 kilometers wide, almost twice the orbit. The Moon would never leave it, because",
+    "keywords": [
+      "sun",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:orbit",
+      "sim:engulf",
+      "sim:measure",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "engulf",
+      "center": "earth",
+      "orbiter": "moon",
+      "orbit_km": 384400,
+      "big": "sun"
+    },
+    "highlight": [
+      "orbit",
+      "Sun",
+      "twice"
+    ],
+    "description": "Drawn to real scale: the Moon's orbit around Earth inside the Sun. Distances: NASA Moon fact sheet; Sun: IAU nominal radius.",
+    "tags": "#space #sun #moon #shorts"
+  },
+  {
+    "slug": "america-is-wider-than-the-moon",
+    "title": "America is wider than the Moon",
+    "script": "America is wider than the Moon. Drop the lower 48 states onto it, to scale. The Moon is 3,475 kilometers wide, America about 4,600. Both coasts hang right off the edges. So next time you see a full Moon, remember",
+    "keywords": [
+      "moon",
+      "usa"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:place",
+      "sim:measure",
+      "sim:verdict",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "map",
+      "country": "usa",
+      "body": "moon",
+      "measure": "width"
+    },
+    "highlight": [
+      "America",
+      "Moon",
+      "coasts"
+    ],
+    "description": "Drawn to real scale: the contiguous United States over the Moon. Outline: Natural Earth (public domain); Moon: NASA fact sheet.",
+    "tags": "#space #moon #usa #shorts"
+  },
+  {
+    "slug": "the-philippines-would-fit-on-the-moon",
+    "title": "The Philippines would fit on the Moon",
+    "script": "The Philippines would fit on the Moon. Lay all its big islands over it, to scale. From north to south, they stretch about 1,450 kilometers. The Moon is 3,475 wide, more than twice that. Every big island lands on it, so yes,",
+    "keywords": [
+      "moon",
+      "philippines"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:place",
+      "sim:measure",
+      "sim:verdict",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "map",
+      "country": "philippines",
+      "body": "moon",
+      "measure": "height"
+    },
+    "highlight": [
+      "Philippines",
+      "Moon",
+      "islands"
+    ],
+    "description": "Drawn to real scale: the larger Philippine islands over the Moon. Outline: Natural Earth (public domain); Moon: NASA fact sheet.",
+    "tags": "#space #moon #philippines #shorts"
+  },
+  {
+    "slug": "how-many-earths-fill-the-sun",
+    "title": "How many Earths fill the Sun? Guess first",
+    "script": "How many Earths fill the Sun? That tiny dot below it is Earth. Lock in your guess now. Okay, back to the Sun. Fill it up, and it takes about 1.3 million. Tell me in the comments, then rewatch and ask:",
+    "keywords": [
+      "sun",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:fill",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "sun",
+      "count": 1300000
+    },
+    "highlight": [
+      "Earths",
+      "Sun",
+      "guess"
+    ],
+    "description": "Drawn to real scale: Earth next to the Sun; about 1.3 million Earths fit by volume. Sizes: NASA fact sheets.",
+    "tags": "#space #sun #earth #shorts"
   }
 ]

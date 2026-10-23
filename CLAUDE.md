@@ -100,6 +100,23 @@ Steps: `intro` (the biggest hole with Neptune's orbit inside: hook frame), `firs
 `orbit` (the orbit it fits inside pulses), `zoom` (pull back past every planet), `grow` (the big hole grows from the
 centre), `outro`. Masses: Event Horizon Telescope (Sgr A* about 4 million, M87* about 6.5 billion solar masses).
 
+`sky` (`"sim": {"type": "sky", "body": "jupiter", "distance_km": 384400, "ground": "city", "fov": 40,
+"compare": {"body": "moon", "distance_km": 384400, "name": "Our Moon", "than": "our Moon"}}`): a body at its true
+angular size in a sky above a code-drawn city skyline (`"ground": "city"`) or a cratered horizon (`"moon"`,
+`"mercury"`). `fov` is the screen's vertical view in degrees (40 for planets at the Moon's distance, 6 for a body
+under 2 degrees). `"measure": "rings"` measures Saturn by its A ring (136,780 km) instead of the planet. Steps:
+`intro` (the body big: hook frame), `compare` (what we see today, e.g. the Moon at 0.5 degrees), `grow` (it grows into
+the body), `measure` (ruler + "21° OF SKY" + "41x WIDER THAN <than>"), `outro`.
+
+`engulf` (`"sim": {"type": "engulf", "center": "earth", "orbiter": "moon", "orbit_km": 384400, "big": "sun"}`): an orbit
+drawn at true scale and a big body laid over it, centred on the middle body. Steps: `intro` (pull back from Earth),
+`orbit` (orbit ruler, its diameter), `engulf` (the Sun appears), `measure` (Sun ruler), `outro`.
+
+`map` (`"sim": {"type": "map", "country": "usa", "body": "moon", "measure": "width"}`): a country's outline laid over
+a body at the same scale; red where it hangs off, green when it fits. Outlines are in `geo/countries.json` (Natural
+Earth 1:50m, public domain, km, north up; usa = the lower 48, philippines = islands over 600 km2). `measure` is
+`"width"` or `"height"`. Steps: `intro`, `place`, `measure`, `verdict`, `outro`.
+
 Bodies: sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune (NASA equatorial diameters, IAU
 nominal Sun radius, in `sims.BODIES`). Never use NASA or other real images, logos or names of people in sims.
 

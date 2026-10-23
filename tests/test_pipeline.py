@@ -651,3 +651,48 @@ def test_spread_formats_splits_an_unavoidable_majority_evenly():
         run = run + 1 if P.format_key(a) == P.format_key(b) else 1
         best = max(best, run)
     assert best == 2
+
+
+# ------------------------------------------------------------------ sky, engulf and map templates
+
+SKY = {"type": "sky", "body": "jupiter", "distance_km": 384400, "ground": "city", "fov": 40,
+       "compare": {"body": "moon", "distance_km": 384400, "name": "Our Moon", "than": "our Moon"}}
+
+
+def test_sky_angles_match_real_sizes():
+    s = sims.Sky(SKY)
+    assert abs(s.deg - 21.07) < 0.05 and abs(s.cdeg - 0.518) < 0.005      # Jupiter at the Moon's distance
+    assert round(s.ratio) == 41
+    rings = sims.Sky(dict(SKY, body="saturn", measure="rings"))
+    assert 39.0 < rings.deg_m < 39.4 and round(rings.ratio) == 76          # A ring outer edge, 136,780 km
+    earth = sims.Sky(dict(SKY, body="earth", ground="moon", fov=6))
+    assert abs(earth.deg - 1.90) < 0.01 and round(earth.ratio) == 4
+    assert sims.validate(SKY, list(sims.TEMPLATES["sky"])) == []
+    assert sims.validate(dict(SKY, ground="mars"), ["intro"])
+
+
+def test_sky_hook_frame_is_bright_and_draws_every_step():
+    import numpy as np
+    s = sims.Sky(SKY)
+    assert np.asarray(s.frame("intro", 0.0).convert("L")).mean() > 35       # pipeline's dark-hook threshold
+    for step in sims.TEMPLATES["sky"]:
+        assert s.frame(step, 0.5).size == (sims.W, sims.H)
+
+
+def test_engulf_moon_orbit_fits_inside_the_sun():
+    e = sims.Engulf({"type": "engulf"})
+    assert 2 * e.orbit < 2 * e.rb                                           # 768,800 km < 1,391,400 km
+    assert 2 * e.rb * e.s_full < sims.W                                     # the whole Sun stays on screen
+    for step in sims.TEMPLATES["engulf"]:
+        assert e.frame(step, 0.5).size == (sims.W, sims.H)
+
+
+def test_map_country_widths_and_fit():
+    usa = sims.MapOver({"type": "map", "country": "usa"})
+    assert 4500 < usa.span_km < 4800 and not usa.fits                      # lower 48 are wider than the Moon
+    ph = sims.MapOver({"type": "map", "country": "philippines", "measure": "height"})
+    assert ph.fits and ph.span_km < 3475
+    assert (usa.box[1] - usa.box[0]) * usa.s < sims.W                       # the outline stays on screen
+    assert sims.validate({"type": "map", "country": "atlantis"}, ["intro"])
+    for step in sims.TEMPLATES["map"]:
+        assert usa.frame(step, 0.5).size == (sims.W, sims.H)

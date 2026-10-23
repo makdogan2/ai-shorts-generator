@@ -10,6 +10,11 @@ ve doğrudan FFmpeg'e verilir; ek program gerekmez. Bütün gök cisimleri telif
            Adımlar: intro, stack, measure, overflow, stretch, spare
   compare  "Büyüğün içine kaç tane küçük sığar": iki cisim gerçek ölçekte yan yana, küçükler büyüğün içini doldurur,
            sonra çapı boyunca dizilir. Adımlar: intro, point, spot, back, fill, across, outro
+  collapse "Kara deliğe sıkıştır": intro, size, crush, horizon, compare, outro
+  giant    Dev kara delikler gezegen yörüngeleriyle: intro, first, orbit, zoom, grow, outro
+  sky      Gökyüzünde gerçek açısal boyut (Ay'ın yerinde Jüpiter): intro, compare, grow, measure, outro
+  engulf   Bir yörünge büyük bir cismin içinde (Ay'ın yörüngesi Güneş'te): intro, orbit, engulf, measure, outro
+  map      Bir ülkenin ana hatları bir cismin üstünde aynı ölçekte: intro, place, measure, verdict, outro
 """
 import functools
 import math
@@ -43,7 +48,10 @@ BODIES = {
 TEMPLATES = {"collapse": ("intro", "size", "crush", "horizon", "compare", "outro"),
              "giant": ("intro", "first", "orbit", "zoom", "grow", "outro"),
              "lineup": ("intro", "stack", "measure", "overflow", "stretch", "spare"),
-             "compare": ("intro", "point", "spot", "back", "fill", "across", "outro")}
+             "compare": ("intro", "point", "spot", "back", "fill", "across", "outro"),
+             "sky": ("intro", "compare", "grow", "measure", "outro"),
+             "engulf": ("intro", "orbit", "engulf", "measure", "outro"),
+             "map": ("intro", "place", "measure", "verdict", "outro")}
 
 FONT_PATHS = [
     "C:/Windows/Fonts/arialbd.ttf",
@@ -1290,7 +1298,419 @@ class Giant:
         return img
 
 
-SIMS = {"lineup": Lineup, "compare": Compare, "collapse": Collapse, "giant": Giant}
+
+# ---------------------------------------------------------------- gökyüzü, harita ve "içine sığar" şablonları
+
+def hruler(layer, xa, xb, y, color, alpha=1.0, cap=22):
+    """Yatay ölçü çizgisi; uçlarında dikey çentik."""
+    if alpha <= 0:
+        return
+    d = ImageDraw.Draw(layer)
+    c = (*color, int(255 * alpha))
+    xa, xb = sorted((xa, xb))
+    d.line((max(xa, -10), y, min(xb, W + 10), y), fill=c, width=6)
+    for x in (xa, xb):
+        if -10 < x < W + 10:
+            d.line((x, y - cap, x, y + cap), fill=c, width=6)
+
+
+def angular_deg(radius_km, distance_km):
+    """Bir cismin gökyüzünde kapladığı açı (derece, çap)."""
+    return 2 * math.degrees(math.atan(radius_km / distance_km))
+
+
+def deg_label(deg):
+    """Okunur açı: 0.5°, 1.9°, 21°."""
+    return f"{deg:.1f}°" if deg < 10 else f"{deg:.0f}°"
+
+
+@functools.lru_cache(maxsize=4)
+def _sky_backdrop(ground):
+    """Gökyüzü: şehirde alacakaranlık (lacivertten ufukta mora), Ay'da ve Merkür'de havasız kara gök; yıldızlar."""
+    yy = np.linspace(0, 1, H, dtype=np.float32)[:, None]
+    if ground == "city":
+        top, mid, low = np.array([4, 6, 22]), np.array([14, 22, 58]), np.array([58, 44, 88])
+        t = np.clip(yy / 0.82, 0, 1)
+        col = np.where(t < 0.6, top + (mid - top) * (t / 0.6), mid + (low - mid) * ((t - 0.6) / 0.4))
+        star_a = 0.55
+    else:
+        col = np.broadcast_to(np.array([3, 3, 8], np.float32), (H, 3))
+        star_a = 1.0
+    img = np.broadcast_to(col[:, None, :], (H, W, 3)).astype(np.float32)
+    rng = np.random.default_rng(7)
+    for _ in range(900):
+        x, y = int(rng.integers(0, W)), int(rng.integers(0, int(H * 0.8)))
+        b = min(1.0, 0.25 + rng.pareto(3.0) * 0.35) * star_a * (1 - y / (H * 0.95))
+        img[y, x] = np.maximum(img[y, x], 255 * b)
+    return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).convert("RGBA")
+
+
+@functools.lru_cache(maxsize=4)
+def _ground_layer(ground):
+    """Ön plan: kodla çizilmiş şehir silueti (ışıklı pencereler) ya da kraterli, kayalık bir ufuk."""
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    rng = np.random.default_rng(11)
+    if ground == "city":
+        x = -20
+        while x < W + 20:
+            bw = int(rng.integers(50, 150))
+            bh = int(rng.integers(140, 430)) if rng.random() > 0.2 else int(rng.integers(430, 560))
+            top = H - bh
+            d.rectangle((x, top, x + bw, H), fill=(8, 10, 18, 255))
+            if rng.random() < 0.3:      # anten
+                ax = x + bw // 2
+                d.line((ax, top, ax, top - int(rng.integers(30, 90))), fill=(8, 10, 18, 255), width=4)
+            for wy in range(top + 18, H - 10, 26):
+                for wx in range(x + 10, x + bw - 14, 22):
+                    if rng.random() < 0.32:
+                        a = int(rng.integers(120, 230))
+                        d.rectangle((wx, wy, wx + 9, wy + 12), fill=(255, 214, 140, a))
+            x += bw + int(rng.integers(0, 14))
+        return layer
+    base = (92, 90, 88) if ground == "moon" else (86, 76, 66)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    horizon = H * 0.80 + 26 * ((xx - W / 2) / (W / 2)) ** 2          # hafif eğri ufuk
+    noise = np.asarray(Image.fromarray((fbm(5, base=6, octaves=5, h=H // 4, w=W // 4) * 255).astype(np.uint8))
+                       .resize((W, H), Image.BILINEAR), np.float32) / 255
+    depth = np.clip((yy - horizon) / (H - horizon.min()), 0, 1)
+    shade = (0.55 + 0.5 * noise) * (0.55 + 0.45 * depth)
+    rgb = np.clip(np.array(base, np.float32) * shade[..., None], 0, 255)
+    alpha = np.clip((yy - horizon) * 0.8, 0, 1) * 255
+    img = Image.fromarray(np.dstack([rgb, alpha]).astype(np.uint8), "RGBA")
+    d = ImageDraw.Draw(img)
+    for _ in range(26):               # kraterler: perspektifte yassı elipsler
+        cx = float(rng.uniform(0, W))
+        cy = float(rng.uniform(H * 0.83, H * 1.0))
+        r = float(rng.uniform(14, 70)) * (0.5 + (cy - H * 0.8) / (H * 0.2))
+        d.ellipse((cx - r, cy - r * 0.32, cx + r, cy + r * 0.32), fill=(40, 38, 36, 150))
+        d.arc((cx - r, cy - r * 0.32, cx + r, cy + r * 0.32), 200, 340, fill=(150, 146, 140, 160), width=3)
+    return img
+
+
+class Sky:
+    """Bir gök cismi gökyüzünde gerçek açısal boyutuyla: ör. Ay'ın yerinde Jüpiter, Ay'dan görünen Dünya.
+    spec: body, distance_km, ground ("city" | "moon" | "mercury"), fov (ekranın dikey görüş açısı, derece),
+    compare: {body, distance_km, name} (bugün gördüğümüz, kıyas için). Adımlar: intro, compare, grow, measure, outro"""
+
+    CX, CY = W / 2, 760
+
+    def __init__(self, spec):
+        self.body = spec["body"]
+        self.dist = float(spec["distance_km"])
+        self.ground = spec.get("ground", "city")
+        self.fov = float(spec.get("fov", 40))
+        cmp_ = spec.get("compare") or {}
+        self.cbody = cmp_.get("body", "moon")
+        self.cdist = float(cmp_.get("distance_km", 384400))
+        self.cname = cmp_.get("name", BODIES[self.cbody]["name"])
+        self.than = cmp_.get("than", self.cname)          # "41x wider than <than>"
+        self.deg = angular_deg(BODIES[self.body]["d"] / 2, self.dist)
+        # halkalı gezegende ölçü halkaların dış kenarından (A halkası) alınabilir: "measure": "rings"
+        self.k_meas = RING_BANDS[-1][1] if spec.get("measure") == "rings" and BODIES[self.body].get("rings") else 1.0
+        self.deg_m = angular_deg(BODIES[self.body]["d"] / 2 * self.k_meas, self.dist)
+        self.cdeg = angular_deg(BODIES[self.cbody]["d"] / 2, self.cdist)
+        self.ratio = self.deg_m / self.cdeg
+        self.ppd = H / self.fov
+        self.r = self.deg / 2 * self.ppd
+        self.cr = self.cdeg / 2 * self.ppd
+        self.cy = spec.get("cy", self.CY)
+
+    def state(self, step, u):
+        st = {"zoom": 1.0, "main": 1.0, "cmp": 0.0, "grow": 1.0, "ruler": 0.0, "label": 0.0, "pulse": 0.0}
+        if step == "intro":
+            st.update(zoom=lerp(1.04, 1.0, ease(u)))
+        elif step == "compare":
+            t = ease(span(u, 0.0, 0.35))
+            st.update(main=1 - t, cmp=t, pulse=span(u, 0.3, 0.5), label=span(u, 0.35, 0.55))
+        elif step == "grow":
+            t = ease(span(u, 0.08, 0.85))
+            st.update(main=t, cmp=1 - t, grow=t, label=1 - span(u, 0.0, 0.12))
+        elif step == "measure":
+            st.update(ruler=ease(span(u, 0.05, 0.45)))
+        elif step == "outro":
+            st.update(zoom=lerp(1.0, 1.06, ease(u)), ruler=1 - span(u, 0.0, 0.3))
+        else:
+            raise ValueError(f"sky şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['sky'])}")
+        return st
+
+    def _body(self, img, body, r, alpha, rot=0.25):
+        if alpha <= 0.01 or r < 0.6:
+            return
+        rings = BODIES[body].get("rings")
+        parts = []
+        if rings:
+            parts.append(ring_patch(self.CX, self.cy, r, front=False))
+        parts.append(sphere_patch(body, self.CX, self.cy, r, rot))
+        if rings:
+            parts.append(ring_patch(self.CX, self.cy, r, front=True))
+        for p in parts:
+            if not p:
+                continue
+            patch = p[0]
+            if alpha < 0.999:
+                patch = patch.copy()
+                patch.putalpha(patch.getchannel("A").point(lambda v: int(v * alpha)))
+            img.alpha_composite(patch, (p[1], p[2]))
+
+    def frame(self, step, u, words=None):
+        st = self.state(step, u)
+        img = _sky_backdrop(self.ground).copy()
+        z = st["zoom"]
+        r_main = self.r * z if step != "grow" else math.exp(lerp(math.log(max(self.cr, 0.6)), math.log(self.r), st["grow"]))
+        self._body(img, self.body, r_main, st["main"])
+        self._body(img, self.cbody, self.cr * z, st["cmp"], rot=0.0)
+        img.alpha_composite(_ground_layer(self.ground))
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        if st["pulse"] > 0:
+            ring_pulse(layer, self.CX, self.cy, max(self.cr, 6), u, YELLOW, st["pulse"] * st["cmp"])
+        if st["label"] > 0.01:
+            a = st["label"]
+            yl = self.cy + max(self.cr, 6) + 90
+            text(layer, (self.CX, yl), self.cname.upper(), 40, fill=(255, 255, 255, int(255 * a)))
+            pill(layer, (self.CX, yl + 66), deg_label(self.cdeg), 40, YELLOW, alpha=a)
+        if step in ("grow", "measure", "outro"):
+            deg = self.deg_m if step != "grow" else self.deg_m * r_main / self.r
+            a = span(u, 0.5, 0.8) if step == "grow" else (1.0 if step == "measure" else 1 - span(u, 0, 0.3))
+            if a > 0.01:
+                yb = min(self.cy + r_main + 70, H * 0.74)
+                pill(layer, (self.CX, yb), f"{deg_label(deg)} OF SKY", 46, YELLOW, alpha=a)
+        if st["ruler"] > 0:
+            g = st["ruler"]
+            half = min(self.r * self.k_meas, W / 2 - 30) * ease(g)
+            yr = self.cy - min(self.r, 600) - 40 if self.cy - self.r - 40 > 180 else self.cy
+            hruler(layer, self.CX - half, self.CX + half, yr, YELLOW, g)
+            text(layer, (self.CX, min(self.cy + self.r + 150, H * 0.79)),
+                 f"{self.ratio:.0f}x WIDER THAN {self.than.upper()}", 40,
+                 fill=(255, 255, 255, int(255 * g)))
+        img = glow(img)
+        img.paste(layer, (0, 0), layer)
+        return img
+
+
+class Engulf:
+    """Küçük bir yörünge (ör. Ay'ın Dünya etrafındaki yörüngesi) büyük bir cismin (Güneş) içine gerçek ölçekte sığar.
+    spec: center (earth), orbiter (moon), orbit_km (384400), big (sun). Adımlar: intro, orbit, engulf, measure, outro"""
+
+    CY = 1000
+    ORBIT_PX = 250
+
+    def __init__(self, spec):
+        self.center = spec.get("center", "earth")
+        self.orbiter = spec.get("orbiter", "moon")
+        self.big = spec.get("big", "sun")
+        self.orbit = float(spec.get("orbit_km", 384400))
+        self.rc = BODIES[self.center]["d"] / 2
+        self.rb = BODIES[self.big]["d"] / 2
+        self.s_full = self.ORBIT_PX / self.orbit
+        self.s_close = 300 / self.rc
+
+    def state(self, step, u):
+        st = {"s": self.s_full, "orbit": 1.0, "big": 0.0, "ruler_o": 0.0, "ruler_b": 0.0, "labels": 1.0, "ang": u * 0.6}
+        if step == "intro":
+            t = ease(span(u, 0.0, 0.8))
+            st.update(s=math.exp(lerp(math.log(self.s_close), math.log(self.s_full), t)), orbit=span(u, 0.5, 0.9),
+                      labels=span(u, 0.7, 1.0))
+        elif step == "orbit":
+            st.update(ruler_o=ease(span(u, 0.1, 0.6)))
+        elif step == "engulf":
+            st.update(big=ease(span(u, 0.05, 0.7)), ruler_o=1.0)
+        elif step == "measure":
+            st.update(big=1.0, ruler_o=1.0, ruler_b=ease(span(u, 0.05, 0.5)))
+        elif step == "outro":
+            st.update(big=1.0, s=self.s_full * lerp(1.0, 1.08, ease(u)), ruler_o=1 - span(u, 0, 0.3),
+                      ruler_b=1 - span(u, 0, 0.3))
+        else:
+            raise ValueError(f"engulf şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['engulf'])}")
+        return st
+
+    def frame(self, step, u, words=None):
+        st = self.state(step, u)
+        s = st["s"]
+        img = backdrop(s / self.s_full)
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        cx, cy = W / 2, self.CY
+        if st["big"] > 0:
+            rb = self.rb * s * st["big"]
+            p = sphere_patch(self.big, cx, cy, rb, 0.1)
+            if p:
+                img.alpha_composite(p[0], (p[1], p[2]))
+        ro = self.orbit * s
+        over = st["big"] > 0.3
+        if st["orbit"] > 0 and ro < 3000:
+            col = (20, 16, 30) if over else (200, 215, 255)
+            a = int(230 * st["orbit"])
+            dl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            dd = ImageDraw.Draw(dl)
+            n = 90
+            for k in range(0, n, 2):        # kesik çizgili yörünge
+                a0, a1 = 2 * math.pi * k / n, 2 * math.pi * (k + 1) / n
+                dd.line((cx + ro * math.cos(a0), cy + ro * math.sin(a0), cx + ro * math.cos(a1), cy + ro * math.sin(a1)),
+                        fill=(*col, a), width=5)
+            img.alpha_composite(dl)
+        # merkez cismi ve yörüngedeki uydu (gerçek boyut; çok küçükse yine de görünür bir nokta)
+        rc = max(self.rc * s, 3.5)
+        p = sphere_patch(self.center, cx, cy, rc, 0.2) if self.rc * s > 3.5 else None
+        if p:
+            img.alpha_composite(p[0], (p[1], p[2]))
+        else:
+            d.ellipse((cx - rc, cy - rc, cx + rc, cy + rc), fill=(90, 160, 255, 255))
+        ang = -math.pi / 4 + st["ang"]
+        mx, my = cx + ro * math.cos(ang), cy + ro * math.sin(ang)
+        if st["orbit"] > 0.5 and ro < 3000:
+            rm = max(BODIES[self.orbiter]["d"] / 2 * s, 3)
+            d.ellipse((mx - rm, my - rm, mx + rm, my + rm), fill=(225, 225, 220, int(255 * st["orbit"])))
+        if st["labels"] > 0.01 and ro < 1000:
+            a = int(255 * st["labels"])
+            text(layer, (cx, cy + 36), BODIES[self.center]["name"].upper(), 32, fill=(255, 255, 255, a))
+            text(layer, (mx + 18, my - 18), BODIES[self.orbiter]["name"].upper(), 32, fill=(255, 255, 255, a), anchor="lb")
+        if st["ruler_o"] > 0:
+            g = st["ruler_o"]
+            y = cy - ro - 70
+            hruler(layer, cx - ro, cx + ro, y, GREEN if not over else (255, 255, 255), g)
+            pill(layer, (cx, y - 60), f"{round(2 * self.orbit):,} km", 40, GREEN, alpha=g)
+        if st["ruler_b"] > 0:
+            g = st["ruler_b"]
+            rb = self.rb * s
+            y = cy + rb + 60
+            hruler(layer, cx - rb, cx + rb, y, YELLOW, g)
+            pill(layer, (cx, y + 64), f"{BODIES[self.big]['name'].upper()}: {round(2 * self.rb):,} km", 40, YELLOW, alpha=g)
+        img = glow(img)
+        img.paste(layer, (0, 0), layer)
+        return img
+
+
+@functools.lru_cache(maxsize=1)
+def countries():
+    """Ülke ana hatları (Natural Earth, kamu malı), km cinsinden, kuzey yukarı: geo/countries.json"""
+    import json
+    return json.loads((Path(__file__).resolve().parent / "geo" / "countries.json").read_text(encoding="utf-8"))["countries"]
+
+
+def _enclosing(pts):
+    """Noktaları içine alan en küçük çemberin yaklaşık merkezi ve yarıçapı."""
+    cx = sum(p[0] for p in pts) / len(pts)
+    cy = sum(p[1] for p in pts) / len(pts)
+    for i in range(1, 4000):
+        fx, fy = max(pts, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
+        cx += (fx - cx) / (i + 1)
+        cy += (fy - cy) / (i + 1)
+    return cx, cy, max(math.hypot(p[0] - cx, p[1] - cy) for p in pts)
+
+
+class MapOver:
+    """Bir ülkenin ana hatları bir gök cisminin (Ay) üstüne aynı ölçekte konur: ülke cisimden geniş mi, sığıyor mu?
+    spec: country (geo/countries.json anahtarı), body (moon), measure ("width" | "height").
+    Adımlar: intro, place, measure, verdict, outro"""
+
+    CY = 1000
+    R_PX = 400
+
+    def __init__(self, spec):
+        self.key = spec["country"]
+        c = countries()[self.key]
+        self.name = c["name"]
+        self.body = spec.get("body", "moon")
+        self.rb = BODIES[self.body]["d"] / 2
+        pts = [p for ring in c["rings"] for p in ring]
+        ex, ey, er = _enclosing(pts)
+        self.rings = [[(x - ex, y - ey) for x, y in ring] for ring in c["rings"]]
+        self.measure = spec.get("measure", "width")
+        self.span_km = c["width_km"] if self.measure == "width" else c["height_km"]
+        self.fits = er <= self.rb
+        rpx = self.R_PX
+        if not self.fits:          # geniş ülke: ekrana sığsın diye Ay biraz küçülür
+            rpx = min(rpx, (W - 60) / 2 / (c["width_km"] / 2 / self.rb), 900 / (c["height_km"] / 2 / self.rb))
+        self.s = rpx / self.rb
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        self.box = (min(xs) - ex, max(xs) - ex, min(ys) - ey, max(ys) - ey)
+
+    def state(self, step, u):
+        st = {"zoom": 1.0, "shape": 1.0, "drop": 0.0, "ruler": 0.0, "verdict": 0.0}
+        if step == "intro":
+            st.update(zoom=lerp(1.12, 1.0, ease(u)), shape=0.0)
+        elif step == "place":
+            t = ease(span(u, 0.05, 0.6))
+            st.update(shape=t, drop=1 - t)
+        elif step == "measure":
+            st.update(ruler=ease(span(u, 0.05, 0.5)))
+        elif step == "verdict":
+            st.update(ruler=1.0, verdict=ease(span(u, 0.0, 0.4)))
+        elif step == "outro":
+            st.update(zoom=lerp(1.0, 1.05, ease(u)), ruler=1 - span(u, 0, 0.3), verdict=1 - span(u, 0.3, 0.8))
+        else:
+            raise ValueError(f"map şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['map'])}")
+        return st
+
+    def frame(self, step, u, words=None):
+        st = self.state(step, u)
+        img = backdrop(st["zoom"])
+        cx, cy = W / 2, self.CY
+        s = self.s * st["zoom"]
+        p = sphere_patch(self.body, cx, cy, self.rb * s, 0.0)
+        if p:
+            img.alpha_composite(p[0], (p[1], p[2]))
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        if st["shape"] > 0.01:
+            k = s * (1 + 0.35 * st["drop"])
+            oy = -260 * st["drop"]
+            polys = [[(cx + x * k, cy + oy - y * k) for x, y in ring] for ring in self.rings]
+            a = st["shape"]
+            fill_l = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            fd = ImageDraw.Draw(fill_l)
+            for poly in polys:
+                fd.polygon(poly, fill=(70, 190, 255, int(120 * a)))
+            if st["verdict"] > 0:
+                mask = Image.new("L", (W, H), 0)
+                md = ImageDraw.Draw(mask)
+                for poly in polys:
+                    md.polygon(poly, fill=255)
+                disk = Image.new("L", (W, H), 0)
+                rr = self.rb * s
+                ImageDraw.Draw(disk).ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=255)
+                if self.fits:
+                    tint = Image.new("RGBA", (W, H), (*GREEN, int(110 * st["verdict"])))
+                    fill_l.paste(tint, (0, 0), mask)
+                else:
+                    out = ImageChops.subtract(mask, disk)
+                    tint = Image.new("RGBA", (W, H), (*RED, int(170 * st["verdict"])))
+                    fill_l.paste(tint, (0, 0), out)
+            img.alpha_composite(fill_l)
+            od = ImageDraw.Draw(layer)
+            for poly in polys:
+                od.line(poly + [poly[0]], fill=(255, 255, 255, int(235 * a)), width=4, joint="curve")
+            text(layer, (cx, cy + oy), self.name.upper(), 44, fill=(255, 255, 255, int(255 * a)))
+        if st["ruler"] > 0:
+            g = st["ruler"]
+            rr = self.rb * s
+            ytop = cy - max(rr, self.box[3] * s) - 70
+            hruler(layer, cx - rr, cx + rr, ytop, YELLOW, g)
+            pill(layer, (cx, ytop - 62), f"{BODIES[self.body]['name'].upper()}: {round(2 * self.rb):,} km", 40, YELLOW, alpha=g)
+            col = GREEN if self.fits else RED
+            if self.measure == "width":
+                ybot = cy + max(rr, -self.box[2] * s) + 70
+                hruler(layer, cx + self.box[0] * s, cx + self.box[1] * s, ybot, col, g)
+                pill(layer, (cx, ybot + 64), f"{self.name.upper()}: {self.span_km:,} km", 40, col, alpha=g)
+            else:
+                xr = cx + max(rr, self.box[1] * s) + 40
+                xr = min(xr, W - 40)
+                ruler(layer, xr, cy - self.box[3] * s, cy - self.box[2] * s, col, g)
+                ybot = cy + rr + 80
+                pill(layer, (cx, ybot), f"{self.name.upper()}: {self.span_km:,} km TALL", 40, col, alpha=g)
+        if st["verdict"] > 0.01:
+            a = st["verdict"]
+            msg = "FITS ON THE " + BODIES[self.body]["name"].upper() if self.fits else \
+                "WIDER THAN THE " + BODIES[self.body]["name"].upper()
+            pill(layer, (W / 2, 330), msg, 52, GREEN if self.fits else RED, alpha=a)
+        img = glow(img)
+        img.paste(layer, (0, 0), layer)
+        return img
+
+
+SIMS = {"lineup": Lineup, "compare": Compare, "collapse": Collapse, "giant": Giant,
+        "sky": Sky, "engulf": Engulf, "map": MapOver}
 
 
 def validate(spec, steps):
@@ -1323,6 +1743,23 @@ def validate(spec, steps):
             errs.append("sim.holes en az iki kara delik olmalı: [{name, mass_suns}, ...]")
         if spec.get("fit_orbit", "Mercury") not in dict(ORBITS):
             errs.append(f"sim.fit_orbit bir gezegen adı olmalı ({', '.join(n for n, _ in ORBITS)})")
+    if kind == "sky":
+        for b in [spec.get("body")] + [(spec.get("compare") or {}).get("body", "moon")]:
+            if b not in BODIES:
+                errs.append(f"sim.body '{b}' tanımlı bir gök cismi değil ({', '.join(BODIES)})")
+        if not isinstance(spec.get("distance_km"), (int, float)) or spec.get("distance_km", 0) <= 0:
+            errs.append("sim.distance_km pozitif bir sayı olmalı")
+        if spec.get("ground", "city") not in ("city", "moon", "mercury"):
+            errs.append("sim.ground \"city\", \"moon\" ya da \"mercury\" olmalı")
+    if kind == "engulf":
+        for k in ("center", "orbiter", "big"):
+            if spec.get(k, {"center": "earth", "orbiter": "moon", "big": "sun"}[k]) not in BODIES:
+                errs.append(f"sim.{k} tanımlı bir gök cismi değil")
+    if kind == "map":
+        if spec.get("country") not in countries():
+            errs.append(f"sim.country geo/countries.json içinde yok ({', '.join(countries())})")
+        if spec.get("measure", "width") not in ("width", "height"):
+            errs.append("sim.measure \"width\" ya da \"height\" olmalı")
     if kind == "lineup":
         for b in [spec.get("bottom", "earth"), spec.get("top", "moon")] + list(spec.get("stack") or []):
             if b not in BODIES:
