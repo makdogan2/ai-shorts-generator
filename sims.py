@@ -843,6 +843,9 @@ class Compare:
         # outro'daki sıra yalnızca across adımı kullanıldıysa görünür (yoksa büyüğün önünde tek bir kopya belirir)
         steps = spec.get("steps")
         self.show_row = steps is None or "across" in steps
+        # across adımı dolu diskten başlar ve onu söndürür; fill adımı hiç kullanılmadıysa o dolu disk bir an
+        # belirip kaybolmasın (ör. Güneş'in önünde 109 Dünya: önce spot/back, sonra across)
+        self.show_fill = steps is None or "fill" in steps
         q = self.rs / self.rb
         if q > 0.2:
             # boyları yakın iki cisim (ör. Venüs ile Dünya): ikisi de ekrana tam sığsın diye büyüğü küçült,
@@ -894,7 +897,8 @@ class Compare:
             f = span(u, 0.05, 0.85)
             st.update(fill=f, fill_a=1.0, counter=("fill", ease(f), math.sin(math.pi * span(u, 0.85, 0.97))))
         elif step == "across":
-            st.update(fill=1.0, fill_a=1 - span(u, 0, 0.25), row=span(u, 0.15, 0.8), row_a=1.0,
+            st.update(fill=1.0, fill_a=(1 - span(u, 0, 0.25)) if self.show_fill else 0.0,
+                      row=span(u, 0.15, 0.8), row_a=1.0,
                       counter=("across", span(u, 0.15, 0.8)))
         elif step == "outro":
             st.update(cam=self.zoomed(lerp(1.0, 1.15, ease(u))), row=1.0,
@@ -941,7 +945,12 @@ class Compare:
         if rings:
             put(ring_patch(bx, by, br, front=True))
         sx, syy, sr = W / 2, sy(self.small_y), self.rs * s
+        small_rings = BODIES[self.small].get("rings")   # küçük cisim Satürn ise halkasıyla tanınsın
+        if small_rings:
+            put(ring_patch(sx, syy, sr, front=False))
         put(sphere_patch(self.small, sx, syy, sr, 0.0))
+        if small_rings:
+            put(ring_patch(sx, syy, sr, front=True))
         if st["pulse"] > 0:
             ring_pulse(layer, sx, syy, sr, u, YELLOW, st["pulse"])
         if st["labels"] > 0.01:

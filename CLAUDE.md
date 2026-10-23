@@ -12,7 +12,8 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
   `--preview [niche ...]` writes `output/<folder>/onizleme.jpg`, a frame-per-second sheet of the newest videos (also written after every render).
   After every render, new videos get the next free `upload_slots` in `output/<folder>/program.json`, and
   `output/<folder>/yukleme_plani.txt` lists each one's time, title, description and YouTube tags. `--plan` shows the calendar.
-  New videos are ordered so the same format (a sim template, or stock footage) is not published twice in a row.
+  New videos are ordered so the same format (a sim template, or stock footage) is not published twice in a row;
+  when one format is too common for that, it is split into even groups between the others.
 - `niches/<folder>/settings.json` — channel settings (voice, rate, lang, colors, scene timing, music, sfx).
 - `niches/<folder>/topics.json` — the scripts, one object per video.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
@@ -85,6 +86,7 @@ with the small one just below it. `count` is the volume ratio (big / small), sho
 `spot` (zoom onto the small body), `back` (zoom back out), `fill` (small bodies fill the big one bottom-up while the
 counter runs to `count`), `across` (a row across the big body's diameter, counter to the whole number that fits),
 `outro` (slow push-in; use for the loop sentence). Use `spot` and `back` as a pair so the camera does not jump.
+A ringed small body (Saturn) keeps its rings; `across` without an earlier `fill` step starts from the plain big body.
 
 `collapse` (`"sim": {"type": "collapse", "body": "sun", "mass_suns": 1, "compare": {"name": "Mount Everest", "km": 8.85}}`):
 the body is squeezed to the event horizon of its own mass (5.9 km per solar mass, across) while the camera zooms

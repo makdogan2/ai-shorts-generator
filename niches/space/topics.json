@@ -1453,5 +1453,498 @@
     ],
     "description": "Drawn to real scale: Saturn squeezed down to its event horizon, about 1.7 m across. Mass: NASA Saturn fact sheet.",
     "tags": "#space #blackhole #saturn #shorts"
+  },
+  {
+    "slug": "jupiter-doesnt-orbit-the-sun",
+    "title": "Jupiter doesn't really orbit the Sun",
+    "script": "Jupiter doesn't really orbit the Sun. That dot below the Sun is Jupiter, our biggest planet. It's so heavy it tugs the Sun around. They both circle a point just outside the Sun's surface. So the Sun wobbles too, and",
+    "keywords": [
+      "jupiter",
+      "sun"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "jupiter",
+      "big": "sun"
+    },
+    "highlight": [
+      "Jupiter",
+      "orbit",
+      "wobbles"
+    ],
+    "description": "Drawn to real scale: Jupiter next to the Sun. Barycenter: NASA Space Place.",
+    "tags": "#space #jupiter #sun #shorts"
+  },
+  {
+    "slug": "mercury-has-ice",
+    "title": "Mercury has ice",
+    "script": "Mercury has ice. That speck below the Sun is Mercury, the closest planet. Its days hit 430 degrees Celsius. But deep craters at its poles never see the Sun. Water ice hides inside them, so",
+    "keywords": [
+      "mercury",
+      "sun"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "mercury",
+      "big": "sun"
+    },
+    "highlight": [
+      "Mercury",
+      "ice",
+      "craters"
+    ],
+    "description": "Drawn to real scale: Mercury next to the Sun. Temperatures and polar ice: NASA Mercury facts.",
+    "tags": "#space #mercury #sun #shorts"
+  },
+  {
+    "slug": "uranus-would-fit-on-your-plate",
+    "title": "Uranus would fit on your plate",
+    "script": "Uranus would fit on your plate. It's 51,118 kilometers wide. Now press the whole planet together. At about 26 centimeters across, even light is trapped. That's about a dinner plate. It would still hold its 28 moons, so",
+    "keywords": [
+      "uranus",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "uranus",
+      "mass_suns": 4.36587e-05,
+      "compare": {
+        "name": "Dinner plate",
+        "km": 0.00027,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Uranus",
+      "plate",
+      "light"
+    ],
+    "description": "Drawn to real scale: Uranus squeezed down to its event horizon, about 26 cm across. Mass: NASA Uranus fact sheet.",
+    "tags": "#space #blackhole #uranus #shorts"
+  },
+  {
+    "slug": "fastest-winds-on-neptune",
+    "title": "The fastest winds blow on Neptune",
+    "script": "The fastest winds blow on Neptune. That small ball below it is Earth. Even our worst hurricanes would look gentle there. Neptune's winds hit 2,000 kilometers an hour, faster than sound. And it's the farthest planet from the Sun, yet",
+    "keywords": [
+      "neptune",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "neptune"
+    },
+    "highlight": [
+      "winds",
+      "Neptune",
+      "sound"
+    ],
+    "description": "Drawn to real scale: Earth next to Neptune. Wind speed: NASA/Caltech Cool Cosmos.",
+    "tags": "#space #neptune #earth #shorts"
+  },
+  {
+    "slug": "moon-has-no-dark-side",
+    "title": "The Moon has no dark side",
+    "script": "The Moon has no dark side. That gray ball below Earth is the Moon. It turns once every 27 days, one full orbit. So we only ever see one face. But the far side gets just as much sunlight, so",
+    "keywords": [
+      "moon",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "earth"
+    },
+    "highlight": [
+      "Moon",
+      "dark",
+      "sunlight"
+    ],
+    "description": "Drawn to real scale: the Moon next to Earth. Rotation: NASA Moon fact sheet; far side: NASA StarChild.",
+    "tags": "#space #moon #earth #shorts"
+  },
+  {
+    "slug": "venus-has-the-roundest-orbit",
+    "title": "Venus has the roundest orbit of any planet",
+    "script": "Venus has the roundest orbit. Stack 77 Suns between it and the Sun. They stretch 107 million kilometers. At its closest, Venus is too near. At its farthest, it's barely one Sun farther. That leaves 1.1 million kilometers to spare, because",
+    "keywords": [
+      "venus",
+      "sun"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:stack",
+      "sim:measure",
+      "sim:overflow",
+      "sim:stretch",
+      "sim:spare"
+    ],
+    "sim": {
+      "type": "lineup",
+      "bottom": "venus",
+      "top": "sun",
+      "stack": [
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun"
+      ],
+      "near_km": 107480000,
+      "far_km": 108941000
+    },
+    "highlight": [
+      "Venus",
+      "roundest",
+      "Suns"
+    ],
+    "description": "Drawn to real scale: 77 Suns stacked between Venus and the Sun. Distances: NASA Venus fact sheet.",
+    "tags": "#space #venus #sun #shorts"
+  },
+  {
+    "slug": "jupiter-day-under-ten-hours",
+    "title": "Jupiter's day lasts under 10 hours",
+    "script": "Jupiter's day lasts under 10 hours. That tiny dot below it is Earth. Earth needs 24 hours to spin. Jupiter spins once every 9.9 hours. It's 11 Earths wide, and its equator moves over 45,000 kilometers an hour. Sunsets come fast, because",
+    "keywords": [
+      "jupiter",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "jupiter"
+    },
+    "highlight": [
+      "Jupiter's",
+      "day",
+      "spin"
+    ],
+    "description": "Drawn to real scale: Earth next to Jupiter, the planet with the shortest day. Rotation: NASA Jupiter fact sheet.",
+    "tags": "#space #jupiter #earth #shorts"
+  },
+  {
+    "slug": "saturn-nearly-300-moons",
+    "title": "Saturn has nearly 300 moons",
+    "script": "Saturn has nearly 300 moons. That speck below it is our Moon, for scale. Earth gets just this one. Most of Saturn's moons are only a few kilometers wide. Astronomers keep finding more, so",
+    "keywords": [
+      "saturn",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "saturn"
+    },
+    "highlight": [
+      "Saturn",
+      "moons",
+      "Moon"
+    ],
+    "description": "Drawn to real scale: our Moon next to Saturn. Moon count: IAU Minor Planet Center (293 as of mid-2026).",
+    "tags": "#space #saturn #moon #shorts"
+  },
+  {
+    "slug": "all-of-mars-in-a-mustard-seed",
+    "title": "All of Mars could fit in a mustard seed",
+    "script": "All of Mars in a mustard seed. Mars is 6,792 kilometers wide. Crush the red planet down. At 1.9 millimeters, it's a black hole. A mustard seed is barely bigger. Its two moons would keep circling, and that's",
+    "keywords": [
+      "mars",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "mars",
+      "mass_suns": 3.22717e-07,
+      "compare": {
+        "name": "Mustard seed",
+        "km": 2e-06,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Mars",
+      "mustard",
+      "seed"
+    ],
+    "description": "Drawn to real scale: Mars squeezed down to its event horizon, about 1.9 mm across. Mass: NASA Mars fact sheet.",
+    "tags": "#space #blackhole #mars #shorts"
+  },
+  {
+    "slug": "uranus-coldest-planet",
+    "title": "Uranus is the coldest planet, not Neptune",
+    "script": "Uranus is the coldest planet. That little world beneath it is Earth. Earth averages a mild 15 degrees Celsius. Uranus has hit minus 224, colder than distant Neptune. Scientists think an ancient crash let its heat escape, so",
+    "keywords": [
+      "uranus",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "earth",
+      "big": "uranus"
+    },
+    "highlight": [
+      "Uranus",
+      "coldest",
+      "Neptune"
+    ],
+    "description": "Drawn to real scale: Earth next to Uranus. Temperatures: NASA planetary fact sheet and Uranus facts.",
+    "tags": "#space #uranus #earth #shorts"
+  },
+  {
+    "slug": "the-sun-is-our-solar-system",
+    "title": "The Sun is basically our whole solar system",
+    "script": "The Sun is our solar system. That ringed dot below it is Saturn, the second biggest planet. Add up every planet, moon and asteroid. Together they're less than 0.2 percent of the mass. The other 99.8 percent is the Sun, so",
+    "keywords": [
+      "sun",
+      "saturn"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "saturn",
+      "big": "sun"
+    },
+    "highlight": [
+      "Sun",
+      "Saturn",
+      "mass"
+    ],
+    "description": "Drawn to real scale: Saturn next to the Sun. Mass share: NASA Sun facts.",
+    "tags": "#space #sun #saturn #shorts"
+  },
+  {
+    "slug": "mercury-could-pass-for-a-poppy-seed",
+    "title": "Mercury could pass for a poppy seed",
+    "script": "Mercury could pass for a poppy seed. It's 4,879 kilometers wide. Pack all that rock into one ball. At one millimeter, it turns into a black hole. That's a poppy seed. It would still orbit the Sun every 88 days, so",
+    "keywords": [
+      "mercury",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "mercury",
+      "mass_suns": 1.66013e-07,
+      "compare": {
+        "name": "Poppy seed",
+        "km": 1e-06,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Mercury",
+      "poppy",
+      "seed"
+    ],
+    "description": "Drawn to real scale: Mercury squeezed down to its event horizon, about 1 mm across. Mass: NASA Mercury fact sheet.",
+    "tags": "#space #blackhole #mercury #shorts"
+  },
+  {
+    "slug": "venus-air-would-crush-you",
+    "title": "Venus's air would crush you",
+    "script": "Venus's air would crush you. That ball below Earth is Venus, almost our twin. But its air presses down 92 times harder than ours. That's like being 900 meters under the ocean. Even the toughest lander survived about two hours, so",
+    "keywords": [
+      "venus",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "venus",
+      "big": "earth"
+    },
+    "highlight": [
+      "Venus's",
+      "crush",
+      "ocean"
+    ],
+    "description": "Drawn to real scale: Venus next to Earth. Pressure: NASA Venus fact sheet; lander record: Venera 13, 127 minutes.",
+    "tags": "#space #venus #earth #shorts"
+  },
+  {
+    "slug": "jupiter-can-barely-get-bigger",
+    "title": "Jupiter can barely get any bigger",
+    "script": "Jupiter can barely get any bigger. That ringed world below it is Saturn. It's 84 percent as wide, with under a third the mass. Pile on more mass, and Jupiter hardly grows. Add even more, and gravity squeezes it smaller, so",
+    "keywords": [
+      "jupiter",
+      "saturn"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "saturn",
+      "big": "jupiter"
+    },
+    "highlight": [
+      "Jupiter",
+      "Saturn",
+      "smaller"
+    ],
+    "description": "Drawn to real scale: Saturn next to Jupiter. Masses: NASA planetary fact sheet; mass-radius: Seager et al. 2007.",
+    "tags": "#space #jupiter #saturn #shorts"
   }
 ]

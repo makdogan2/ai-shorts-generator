@@ -1205,7 +1205,25 @@ def format_key(t):
 
 
 def spread_formats(topics):
-    """Aynı biçimdeki videolar art arda yayınlanmasın diye sırayı karıştırır (yerleri değişir, sayı aynı kalır)."""
+    """Aynı biçimdeki videolar art arda yayınlanmasın diye sırayı karıştırır (yerleri değişir, sayı aynı kalır).
+    Bir biçim o kadar çoksa ki tekrar kaçınılmazsa (ör. 10 compare + 4 diğer), o biçim eşit gruplara bölünüp
+    diğerlerinin arasına dağıtılır: tekrarlar haftanın sonunda tek bir uzun seri olarak birikmez."""
+    counts = {}
+    for t in topics:
+        counts[format_key(t)] = counts.get(format_key(t), 0) + 1
+    major = max(counts, key=counts.get) if counts else None
+    others = [t for t in topics if format_key(t) != major]
+    if counts and counts[major] > len(others) + 1:
+        same = [t for t in topics if format_key(t) == major]
+        groups = len(others) + 1
+        sizes = [len(same) // groups + (1 if k >= groups - len(same) % groups else 0) for k in range(groups)]
+        out, i = [], 0
+        for k, n in enumerate(sizes):   # küçük gruplar önce, büyükler sonra
+            out += same[i:i + n]
+            i += n
+            if k < len(others):
+                out.append(others[k])
+        return out
     rest, out = list(topics), []
     while rest:
         last = format_key(out[-1]) if out else None

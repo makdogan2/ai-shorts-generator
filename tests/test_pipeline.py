@@ -621,3 +621,33 @@ def test_compare_near_equal_bodies_both_fit_on_screen():
     assert c.state("outro", 0.3)["row_a"] == 0.0
     j = sims.Compare(dict(COMPARE))   # small body far smaller: layout unchanged, row shown as before
     assert j.BIG_R == sims.Compare.BIG_R and j.state("outro", 0.3)["row_a"] > 0
+
+
+def test_compare_across_without_fill_step_shows_no_filled_disk():
+    # the Sun is 109 Earths wide: spot/back then across, no fill step; the across scene must not flash a full disk
+    spec = dict(COMPARE, big="sun", steps=["intro", "point", "spot", "back", "across", "outro"])
+    assert sims.Compare(spec).state("across", 0.0)["fill_a"] == 0.0
+    assert sims.Compare(dict(COMPARE)).state("across", 0.0)["fill_a"] == 1.0   # after a fill step: fades out as before
+
+
+def test_compare_small_saturn_keeps_its_rings():
+    c = sims.Compare({"type": "compare", "small": "saturn", "big": "sun"})
+    img = c.frame("point", 0.0)
+    s, cy = c.full
+    y = sims.H / 2 - (c.small_y - cy) * s
+    r = c.rs * s
+    # just right of the planet's disk, on the ring plane: brighter than the starry background
+    assert max(img.getpixel((int(sims.W / 2 + r * 1.6), int(y + 1)))) > 70
+
+
+def test_spread_formats_splits_an_unavoidable_majority_evenly():
+    # 10 compare + 4 others: some repeats are unavoidable, but never a long run at the end of the week
+    topics = [{"slug": f"c{i}", "sim": {"type": "compare"}} for i in range(10)] + \
+             [{"slug": f"x{i}", "sim": {"type": "collapse"}} for i in range(3)] + [{"slug": "l0", "sim": {"type": "lineup"}}]
+    order = P.spread_formats(topics)
+    assert sorted(t["slug"] for t in order) == sorted(t["slug"] for t in topics)
+    run = best = 1
+    for a, b in zip(order, order[1:]):
+        run = run + 1 if P.format_key(a) == P.format_key(b) else 1
+        best = max(best, run)
+    assert best == 2
