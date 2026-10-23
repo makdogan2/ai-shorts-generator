@@ -995,5 +995,463 @@
     ],
     "description": "Drawn to real scale: Neptune squeezed down to its event horizon, about 30 cm across. Mass: NASA Neptune fact sheet.",
     "tags": "#space #blackhole #neptune #shorts"
+  },
+  {
+    "slug": "closest-to-the-sun-in-january",
+    "title": "We're closest to the Sun in January",
+    "script": "We're closest to the Sun in January. Stack 107 Suns in the gap. That's 149 million kilometers of Sun. In January, the gap is too short. By July, Earth drifts out, and they fit. So distance isn't why winter is cold, and",
+    "keywords": [
+      "sun",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:stack",
+      "sim:measure",
+      "sim:overflow",
+      "sim:stretch",
+      "sim:spare"
+    ],
+    "sim": {
+      "type": "lineup",
+      "bottom": "earth",
+      "top": "sun",
+      "stack": [
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun"
+      ],
+      "near_km": 147100000,
+      "far_km": 152100000
+    },
+    "highlight": [
+      "January",
+      "Suns",
+      "July"
+    ],
+    "description": "Drawn to real scale: 107 Suns stacked between Earth and the Sun. Distances: NASA Earth fact sheet.",
+    "tags": "#space #sun #earth #shorts"
+  },
+  {
+    "slug": "forty-suns-mercury-gap",
+    "title": "Forty Suns fit between Mercury and the Sun",
+    "script": "Forty Suns fit inside Mercury's gap. Line them up toward Mercury. They span about 56 million kilometers. When Mercury swings close, they slam into it. When it swings out, they fit. With 13 million kilometers to spare, because",
+    "keywords": [
+      "sun",
+      "mercury"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:stack",
+      "sim:measure",
+      "sim:overflow",
+      "sim:stretch",
+      "sim:spare"
+    ],
+    "sim": {
+      "type": "lineup",
+      "bottom": "sun",
+      "top": "mercury",
+      "stack": [
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun",
+        "sun"
+      ],
+      "near_km": 46000000,
+      "far_km": 69818000
+    },
+    "highlight": [
+      "Forty",
+      "Suns",
+      "Mercury"
+    ],
+    "description": "Drawn to real scale: forty Suns lined up between the Sun and Mercury. Distances: NASA Mercury fact sheet.",
+    "tags": "#space #mercury #sun #shorts"
+  },
+  {
+    "slug": "mars-half-earths-size",
+    "title": "Mars is only half Earth's size",
+    "script": "Mars is only half Earth's size. That red ball below Earth is Mars. It's 6,792 kilometers wide, about half of us. Yet its surface roughly matches all of Earth's dry land. Every desert and city of ours could fit there, because",
+    "keywords": [
+      "mars",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "mars",
+      "big": "earth"
+    },
+    "highlight": [
+      "Mars",
+      "half",
+      "land"
+    ],
+    "description": "Drawn to real scale: Mars next to Earth. Surface area: ESA Mars facts.",
+    "tags": "#space #mars #earth #shorts"
+  },
+  {
+    "slug": "mercury-barely-bigger-than-moon",
+    "title": "Mercury is barely bigger than our Moon",
+    "script": "Mercury is barely bigger than our Moon. That smaller ball below it is the Moon. Mercury is 4,879 kilometers wide, and the Moon is 3,475. Two moons, Ganymede and Titan, are even wider than Mercury. It's a real planet, and yet",
+    "keywords": [
+      "mercury",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "mercury"
+    },
+    "highlight": [
+      "Mercury",
+      "Moon",
+      "Ganymede",
+      "Titan"
+    ],
+    "description": "Drawn to real scale: the Moon next to Mercury. Sizes: NASA fact sheets.",
+    "tags": "#space #mercury #moon #shorts"
+  },
+  {
+    "slug": "neptune-smaller-yet-heavier",
+    "title": "Neptune is smaller than Uranus, yet heavier",
+    "script": "Neptune is smaller than Uranus, yet heavier. That blue world below Uranus is Neptune. It's 1,590 kilometers narrower. But it packs about 18 percent more mass into less space. The smaller twin is the heavyweight, which means",
+    "keywords": [
+      "neptune",
+      "uranus"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "neptune",
+      "big": "uranus"
+    },
+    "highlight": [
+      "Neptune",
+      "Uranus",
+      "heavier"
+    ],
+    "description": "Drawn to real scale: Neptune next to Uranus. Masses: NASA planetary fact sheet.",
+    "tags": "#space #neptune #uranus #shorts"
+  },
+  {
+    "slug": "moon-can-hide-the-sun",
+    "title": "The Moon can hide the whole Sun",
+    "script": "The Moon can hide the whole Sun. That speck below it is our Moon. The Sun is 400 times wider. It's also about 400 times farther away. Fill the Sun with Moons, you'd need 64 million. That lucky match is why",
+    "keywords": [
+      "sun",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:fill",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "sun",
+      "count": 64193576
+    },
+    "highlight": [
+      "Moon",
+      "Sun",
+      "hide"
+    ],
+    "description": "Drawn to real scale: the Moon next to the Sun, the size match behind total eclipses.",
+    "tags": "#space #eclipse #moon #shorts"
+  },
+  {
+    "slug": "venus-almost-exactly-earths-size",
+    "title": "Venus is almost exactly Earth's size",
+    "script": "Venus is almost exactly Earth's size. That ball below Earth is Venus. It's 12,104 kilometers wide, 95 percent of us. Same size, but its surface is hot enough to melt lead. Our twin turned into a furnace, even though",
+    "keywords": [
+      "venus",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:spot",
+      "sim:back",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "venus",
+      "big": "earth"
+    },
+    "highlight": [
+      "Venus",
+      "Earth's",
+      "lead"
+    ],
+    "description": "Drawn to real scale: Venus next to Earth. Sizes: NASA fact sheets.",
+    "tags": "#space #venus #earth #shorts"
+  },
+  {
+    "slug": "moon-could-become-a-sand-grain",
+    "title": "The Moon could become a grain of sand",
+    "script": "The Moon could become a sand grain. It's 3,475 kilometers wide. Crush every bit of it into a ball. At 0.2 millimeters, not even light escapes. That's smaller than a grain of sand. And it would still pull our tides, so",
+    "keywords": [
+      "moon",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "moon",
+      "mass_suns": 3.6943e-08,
+      "compare": {
+        "name": "Grain of sand",
+        "km": 5e-07,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Moon",
+      "sand",
+      "light"
+    ],
+    "description": "Drawn to real scale: the Moon squeezed down to its event horizon, about 0.2 mm across. Mass: NASA Moon fact sheet.",
+    "tags": "#space #blackhole #moon #shorts"
+  },
+  {
+    "slug": "venus-could-hide-behind-a-dime",
+    "title": "Venus could hide behind a dime",
+    "script": "Venus could hide behind a dime. It's 12,104 kilometers wide. Squeeze all of it down into a ball. At 1.4 centimeters, light can't escape. A dime covers it completely. And it would weigh just as much as before, so",
+    "keywords": [
+      "venus",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "venus",
+      "mass_suns": 2.4476e-06,
+      "compare": {
+        "name": "US dime",
+        "km": 1.791e-05,
+        "shape": "coin"
+      }
+    },
+    "highlight": [
+      "Venus",
+      "dime",
+      "light"
+    ],
+    "description": "Drawn to real scale: Venus squeezed down to its event horizon, about 1.4 cm across. Mass: NASA Venus fact sheet.",
+    "tags": "#space #blackhole #venus #shorts"
+  },
+  {
+    "slug": "saturn-could-shrink-to-your-height",
+    "title": "Saturn could shrink to your height",
+    "script": "Saturn could shrink to your height. It's 120,536 kilometers wide, without the rings. Crush the whole planet into a ball. At 1.7 meters, not even light gets out. That's about as tall as you are. And its moons would keep orbiting, so",
+    "keywords": [
+      "saturn",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "saturn",
+      "mass_suns": 0.0002858,
+      "compare": {
+        "name": "Height chart",
+        "km": 0.0017,
+        "shape": "ruler"
+      }
+    },
+    "highlight": [
+      "Saturn",
+      "height",
+      "light"
+    ],
+    "description": "Drawn to real scale: Saturn squeezed down to its event horizon, about 1.7 m across. Mass: NASA Saturn fact sheet.",
+    "tags": "#space #blackhole #saturn #shorts"
   }
 ]

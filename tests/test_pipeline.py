@@ -602,3 +602,22 @@ def test_collapse_comparison_labels_never_cross_the_captions():
             r, g, b = a[..., 0], a[..., 1], a[..., 2]
             pill = ((r > 180) & (g > 150) & (b < 90)) | ((g > 180) & (r < 150) & (b < 170))
             assert pill.sum() < 40, (step, round(float(u), 2), int(pill.sum()))
+
+
+def test_km_label_goes_down_to_millimeters():
+    # the Moon squeezed to its event horizon is about 0.2 mm across
+    assert sims.km_label(sims.horizon_km(3.6943e-08)) == "0.2 mm"
+    assert sims.km_label(1.8e-5) == "1.8 cm"
+
+
+def test_compare_near_equal_bodies_both_fit_on_screen():
+    # Venus is 95% of Earth: both must be fully visible, the small one below the big one, not off-screen
+    c = sims.Compare({"type": "compare", "small": "venus", "big": "earth", "steps": ["intro", "point", "outro"]})
+    s, cy = c.full
+    big_top = sims.H / 2 - (c.rb - cy) * s
+    small_bottom = sims.H / 2 - (c.small_y - c.rs - cy) * s
+    assert big_top > 450 and small_bottom < sims.H - 40
+    # without an across step the outro must not draw a row of copies over the big body
+    assert c.state("outro", 0.3)["row_a"] == 0.0
+    j = sims.Compare(dict(COMPARE))   # small body far smaller: layout unchanged, row shown as before
+    assert j.BIG_R == sims.Compare.BIG_R and j.state("outro", 0.3)["row_a"] > 0

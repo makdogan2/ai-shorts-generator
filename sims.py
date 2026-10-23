@@ -840,10 +840,21 @@ class Compare:
         self.rs, self.rb = BODIES[self.small]["d"] / 2, BODIES[self.big]["d"] / 2
         self.count = spec.get("count")
         self.across = int(self.rb / self.rs)          # çap boyunca tam sığan sayı
+        # outro'daki sıra yalnızca across adımı kullanıldıysa görünür (yoksa büyüğün önünde tek bir kopya belirir)
+        steps = spec.get("steps")
+        self.show_row = steps is None or "across" in steps
+        q = self.rs / self.rb
+        if q > 0.2:
+            # boyları yakın iki cisim (ör. Venüs ile Dünya): ikisi de ekrana tam sığsın diye büyüğü küçült,
+            # üst kenarı aynı yerde kalsın (kanca başlığının altında), aradaki boşluk sabit 90 px
+            top = self.BIG_Y - self.BIG_R
+            self.BIG_R = min(self.BIG_R, (H - 80 - top - 90) / (2 + 2 * q))
+            self.BIG_Y = top + self.BIG_R
         s = self.BIG_R / self.rb
         self.full = (s, (self.BIG_Y - H / 2) / s)
         rs_px = self.rs * s
-        self.small_y = -(self.rb + max(80, rs_px + 60) / s + self.rs)   # küçük cisim büyüğün altında
+        gap = 90 if q > 0.2 else max(80, rs_px + 60)
+        self.small_y = -(self.rb + gap / s + self.rs)   # küçük cisim büyüğün altında
         s_sp = 360 / self.rs
         self.spot = (s_sp, self.small_y)                                 # küçük cisim ekranın ortasında, büyük
         # doldurma: büyüğün diskine sığan küçük daireler (altıgen dizilim), aşağıdan yukarı; çok fazlaysa büyütülür
@@ -886,7 +897,8 @@ class Compare:
             st.update(fill=1.0, fill_a=1 - span(u, 0, 0.25), row=span(u, 0.15, 0.8), row_a=1.0,
                       counter=("across", span(u, 0.15, 0.8)))
         elif step == "outro":
-            st.update(cam=self.zoomed(lerp(1.0, 1.15, ease(u))), row=1.0, row_a=1 - span(u, 0.5, 1))
+            st.update(cam=self.zoomed(lerp(1.0, 1.15, ease(u))), row=1.0,
+                      row_a=(1 - span(u, 0.5, 1)) if self.show_row else 0.0)
         else:
             raise ValueError(f"compare şablonunda '{step}' adımı yok: {', '.join(TEMPLATES['compare'])}")
         return st
@@ -1037,7 +1049,7 @@ def black_hole(img, cx, cy, r, disk=0.0, spin=0.0):
 
 
 def km_label(km):
-    """Okunur uzunluk: 1.8 cm, 5.6 m, 5.9 km, 1,391,400 km, 24 million km, 38 billion km."""
+    """Okunur uzunluk: 0.2 mm, 1.8 cm, 5.6 m, 5.9 km, 1,391,400 km, 24 million km, 38 billion km."""
     if km >= 1e9:
         return f"{km / 1e9:.0f} billion km"
     if km >= 1e7:
@@ -1048,7 +1060,9 @@ def km_label(km):
         return f"{km:.1f} km"
     if km >= 0.001:
         return f"{km * 1000:.1f} m"
-    return f"{km * 1e5:.1f} cm"
+    if km >= 1e-5:
+        return f"{km * 1e5:.1f} cm"
+    return f"{km * 1e6:.1f} mm"
 
 
 class Collapse:

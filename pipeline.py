@@ -1091,8 +1091,11 @@ async def produce(niche):
             clips = clips_for_scenes(scenes, t["keywords"], cfg["fallback_queries"])
             if not clips and attempt == 0:
                 print("  stok klip yok, gradyan arka plan kullanılıyor")
+            sim = t.get("sim")
+            if sim:   # şablon hangi adımların kullanıldığını bilsin (ör. across yoksa outro'da sıra çizilmez)
+                sim = dict(sim, steps=[v[4:] for v in t.get("visuals", []) if str(v).startswith("sim:")])
             render(niche, slug, total, [d for d, _ in scenes], clips, words, highlights, music, music_start, hook,
-                   t.get("sim"))
+                   sim)
             start = hook[1] if hook else words[0][0]   # kanca sırasında ortada yazı yok
             problems = check_video(video, total, (start + 0.1, words[-1][1] - 0.1), hook=attempt == 0)
             if not problems:
