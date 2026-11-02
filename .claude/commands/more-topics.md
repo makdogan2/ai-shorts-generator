@@ -19,6 +19,11 @@ Steps:
    If a good idea needs a template or body that does not exist yet, list it at the end instead of writing it.
 2. Pick the new topics. Favour the pattern that performs best on this channel: a familiar thing everyone knows,
    shrunk, flipped or compared in a surprising way ("Mount Everest is tiny.", "You've never seen the Sun.").
+   For `space` (Studio data, 26 October 2026): only Shorts that show one thing inside, beside or over another
+   cleared 60% stayed (planets between Earth and the Moon, Jupiter next to the Sun, Earth crushed to a coin).
+   So pick only ideas the viewer can SEE as scale: `compare` with `fill`, `lineup` stacked in a gap, `collapse`,
+   `map` over a body, `sky`. Do not pick abstract facts with nothing to compare (all under 40%), and do not pick
+   bodies merely lined up side by side ("Exactly 4 Earths fit across Uranus", 35%).
    Name the subject in the hook itself; avoid vague hooks like "this star". Mix sub-topics so the batch is varied.
    Never reuse a hook skeleton already in the file (same sentence with only the numbers or bodies swapped):
    YouTube's spam policy targets repetitive automated content, and `--validate` warns about it.

@@ -10,6 +10,7 @@ cache/
 # Gizli anahtarlar (asla repoya girmesin)
 pixabay_key.txt
 pexels_key.txt
+anthropic_key.txt
 .env
 
 # Muzik dosyalari (cogu telifli olabilir, public repoya girmesin)
@@ -28,3 +29,6 @@ models/
 
 # Kisisel Claude notu (repoya gitmesin)
 CLAUDE.local.md
+
+# yazar.py harcama defteri (kisisel)
+yazar-harcama.json

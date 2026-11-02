@@ -14,6 +14,23 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
   `output/<folder>/yukleme_plani.txt` lists each one's time, title, description and YouTube tags. `--plan` shows the calendar.
   New videos are ordered so the same format (a sim template, or stock footage) is not published twice in a row;
   when one format is too common for that, it is split into even groups between the others.
+- `yazar.py` — writes new scripts with the Claude API (monthly Platform credits) instead of an interactive session:
+  `python yazar.py <folder> [count]` (or `yazar.bat space 10`) generates topics with `prompts/kurallar.md` as the
+  system prompt, runs `validate_topics` and sends errors back to the model, fact-checks every topic with web search,
+  asks for confirmation, appends to topics.json (backup in `cache/`) and writes a report to `output/<folder>/`.
+  `--dry-run` shows the prompt and a cost estimate; `--harcama` shows this month's spend (`yazar-harcama.json`,
+  capped by `AYLIK_TAVAN`). The key lives in `anthropic_key.txt` (git-ignored), never in a global env var —
+  a global `ANTHROPIC_API_KEY` makes Claude Code bill the API instead of the subscription. When the script
+  rules above change, update `prompts/kurallar.md` too.
+- `otomatik.bat` — the weekly hands-off job: `yazar.py space 14 --yes` (run cap $3, month cap $10) then
+  `pipeline.py space`, logging to `output/otomatik.log`. `zamanlayici-kur.bat` registers it once in Task
+  Scheduler (Sunday 21:00, wakes the PC, runs at next boot if missed). Uploads stay manual until the
+  YouTube API audit passes.
+- `yukle.py` — uploads rendered videos with the YouTube Data API and schedules each at its `program.json` slot
+  (`private` + `publishAt`), logging ids to `output/<view>/yuklendi.json`. Needs `client_secret.json` (OAuth
+  desktop client, git-ignored) and a one-time browser login that writes `youtube_token.json`. `--test <slug>`
+  uploads one video as unlisted to see whether the unverified-project private lock applies; `otomatik.bat` runs
+  it automatically once `youtube_token.json` exists.
 - `niches/<folder>/settings.json` — channel settings (voice, rate, lang, colors, scene timing, music, sfx).
 - `niches/<folder>/topics.json` — the scripts, one object per video.
 - `niches/<folder>/muzik/` — optional niche-specific music (mp3 files are git-ignored).
@@ -35,7 +52,11 @@ FFmpeg render at -14 LUFS, and an automatic quality check after every render.
 - Vary the hook wording. YouTube's spam policy forbids using automated tools to flood the platform with repetitive
   content, so two topics must not share a hook skeleton ("Jupiter could swallow 1,300 Earths." and "Saturn could swallow
   764 Earths." are the same skeleton); `--validate` warns about it. Rotate shapes: shrink ("Jupiter is tiny next to the Sun."),
-  exact twist ("Exactly four Earths fit across Uranus."), flip ("The Moon is smaller than you think.").
+  fit ("Every planet fits between Earth and the Moon."), flip ("The Moon is smaller than you think.").
+- Space niche, from Studio data (26 October 2026): only Shorts that SHOW scale (one thing inside, beside or over another)
+  kept 60%+ of viewers and got 2,600+ views. Abstract facts with nothing to compare stayed under 40%, and bodies merely
+  lined up side by side ("Exactly 4 Earths fit across Uranus.") 35%. Write only scale ideas for this channel.
+- Post at least 8 hours apart (`upload_slots` 02:00 and 14:00): Shorts posted 2 hours after another were barely shown.
 
 ## topics.json entry
 
@@ -140,8 +161,9 @@ as a big title from the first frame), `zoom` (0.08: gentle push-in/pull-out on e
 
 ## Conventions
 
-- Never commit music, API keys (`pixabay_key.txt`, `pexels_key.txt`) or rendered videos; `.gitignore` covers them.
+- Never commit music, API keys (`pixabay_key.txt`, `pexels_key.txt`, `anthropic_key.txt`) or rendered videos; `.gitignore` covers them.
 - Validate JSON after editing: `python -c "import json,sys; [json.load(open(f, encoding='utf-8')) for f in sys.argv[1:]]" <files>`.
 - To add a niche, use the `/new-niche` command. To add scripts to an existing niche, use `/more-topics <folder> [count]`.
+  To add scripts without spending subscription usage, run `python yazar.py <folder> [count]` instead.
 - After editing a topics.json, run `python pipeline.py --validate <folder>`.
 - After changing `pipeline.py` or `sims.py`, run `python -m pytest tests` (render tests need FFmpeg). GitHub Actions runs them on every push.

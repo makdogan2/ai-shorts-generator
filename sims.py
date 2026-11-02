@@ -1702,8 +1702,8 @@ class MapOver:
                 pill(layer, (cx, ybot), f"{self.name.upper()}: {self.span_km:,} km TALL", 40, col, alpha=g)
         if st["verdict"] > 0.01:
             a = st["verdict"]
-            msg = "FITS ON THE " + BODIES[self.body]["name"].upper() if self.fits else \
-                "WIDER THAN THE " + BODIES[self.body]["name"].upper()
+            name = ("THE " if self.body in ("moon", "sun") else "") + BODIES[self.body]["name"].upper()
+            msg = ("FITS ON " if self.fits else "WIDER THAN ") + name
             pill(layer, (W / 2, 330), msg, 52, GREEN if self.fits else RED, alpha=a)
         img = glow(img)
         img.paste(layer, (0, 0), layer)

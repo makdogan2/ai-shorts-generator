@@ -2209,5 +2209,184 @@
     ],
     "description": "Drawn to real scale: Earth next to the Sun; about 1.3 million Earths fit by volume. Sizes: NASA fact sheets.",
     "tags": "#space #sun #earth #shorts"
+  },
+  {
+    "slug": "russia-is-too-wide-for-mars",
+    "title": "Russia is too wide for Mars",
+    "script": "Russia is too wide for Mars. Lay the whole country over Mars, to scale. Mars is 6,792 kilometers across, Russia about 7,900. Both ends hang off into space. So before you call Mars a giant world, remember:",
+    "keywords": [
+      "mars",
+      "russia"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:place",
+      "sim:measure",
+      "sim:verdict",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "map",
+      "country": "russia",
+      "body": "mars",
+      "measure": "width"
+    },
+    "highlight": [
+      "Russia",
+      "Mars",
+      "space"
+    ],
+    "description": "Drawn to real scale: Russia over Mars. Outline: Natural Earth (public domain); Mars: NASA fact sheet.",
+    "tags": "#space #mars #russia #shorts"
+  },
+  {
+    "slug": "fifty-moons-fill-the-earth",
+    "title": "Fifty Moons would fill the Earth",
+    "script": "Fifty Moons would fill the Earth. That small gray ball is our Moon. Pour Moons into Earth, and it takes about 50. Line them across, and not even four fit. Yet that little Moon still pulls our oceans every day, and",
+    "keywords": [
+      "moon",
+      "earth"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:fill",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "earth",
+      "count": 49
+    },
+    "highlight": [
+      "Moons",
+      "Earth",
+      "oceans"
+    ],
+    "description": "Drawn to real scale: the Moon next to Earth; about 49 Moons fit by volume, under 4 across. Sizes: NASA fact sheets.",
+    "tags": "#space #moon #earth #shorts"
+  },
+  {
+    "slug": "crush-jupiter-into-a-garage",
+    "title": "Crush Jupiter and it fits a garage",
+    "script": "Crush Jupiter and it fits a garage. It's 142,984 kilometers wide. Squeeze all of it into one ball. At 5.6 meters, not even light escapes. A one-car garage is about 6 meters long. Every bit of Jupiter is still in there, so",
+    "keywords": [
+      "jupiter",
+      "black hole"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:size",
+      "sim:crush",
+      "sim:horizon",
+      "sim:compare",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "collapse",
+      "body": "jupiter",
+      "mass_suns": 0.0009542,
+      "compare": {
+        "name": "One-car garage",
+        "km": 0.006,
+        "shape": "ruler"
+      }
+    },
+    "highlight": [
+      "Jupiter",
+      "garage",
+      "light"
+    ],
+    "description": "Drawn to real scale: Jupiter squeezed down to its event horizon, about 5.6 m across. Mass: NASA Jupiter fact sheet.",
+    "tags": "#space #jupiter #blackhole #shorts"
+  },
+  {
+    "slug": "mars-is-barely-two-moons-wide",
+    "title": "Mars is barely two Moons wide",
+    "script": "Mars is barely two Moons wide. That gray dot is our Moon, to scale. Fill Mars with Moons, and only about seven fit. Line them across, and not even two make it. The Red Planet is that small, which is why",
+    "keywords": [
+      "mars",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:fill",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "mars",
+      "count": 7.4
+    },
+    "highlight": [
+      "Mars",
+      "Moons",
+      "Red Planet"
+    ],
+    "description": "Drawn to real scale: the Moon next to Mars; about 7 Moons fit by volume, under 2 across. Sizes: NASA fact sheets.",
+    "tags": "#space #mars #moon #shorts"
+  },
+  {
+    "slug": "india-spans-over-half-of-mercury",
+    "title": "India spans over half of Mercury",
+    "script": "India spans over half of Mercury. Its outline measures 2,911 kilometers across. Mercury is 4,879 kilometers wide. So the whole country fits, with 1,968 kilometers to spare. Not bad for the smallest planet, and that is why",
+    "keywords": [
+      "mercury",
+      "india"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:place",
+      "sim:measure",
+      "sim:verdict",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "map",
+      "country": "india",
+      "body": "mercury",
+      "measure": "width"
+    },
+    "highlight": [
+      "Mercury",
+      "India",
+      "smallest"
+    ],
+    "description": "Drawn to real scale: India's outline laid over Mercury, using NASA fact sheets and Natural Earth.",
+    "tags": "#space #mercury #shorts"
+  },
+  {
+    "slug": "the-sun-holds-64-million-moons",
+    "title": "The Sun holds 64 million Moons",
+    "script": "The Sun holds 64 million Moons. That tiny dot is our Moon. Keep pouring and it takes 64,193,576 of them to fill the Sun. One line across it holds 400 Moons. Our Moon is a speck, which is why",
+    "keywords": [
+      "sun",
+      "moon"
+    ],
+    "visuals": [
+      "sim:intro",
+      "sim:point",
+      "sim:fill",
+      "sim:across",
+      "sim:outro"
+    ],
+    "sim": {
+      "type": "compare",
+      "small": "moon",
+      "big": "sun",
+      "count": 64193576
+    },
+    "highlight": [
+      "Sun",
+      "Moon",
+      "speck"
+    ],
+    "description": "Drawn to real scale: Moons filling the Sun, using NASA fact sheets and the IAU solar radius.",
+    "tags": "#space #sun #shorts"
   }
 ]
